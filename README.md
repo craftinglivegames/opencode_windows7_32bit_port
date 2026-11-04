@@ -108,27 +108,52 @@ opencode.exe --version → 1.19.3
 `win32-x64` и `win32-arm64`. Бинарник — PE32+ (x86-64), пересборка в 32 бита
 невыполнима.
 
-Рабочее решение — режим «сервер + браузер»:
+Рабочее решение — режим «сервер + клиент»: тяжёлый Bun-рантайм работает на
+64-битной машине, а 32-битный нетбук запускает клиент на движке Supermium
+(Chromium для старых ПК) в режиме `--app`, поэтому окно выглядит как обычное
+десктопное приложение без адресной строки и вкладок.
 
-1. На **64-битной** машине (Win7/10/11) распакуйте пакет и запустите
-   `dist\OCShellWeb.cmd` (или вручную):
-   ```
-   portable\opencode.exe web --hostname 0.0.0.0 --port 8090
-   ```
-2. На **32-битной** Win7 откройте в браузере:
-   ```
-   http://<IP-64-битной-машины>:8090
-   ```
-3. Для доступа из локальной сети разрешите порт 8090 в брандмауэре:
-   ```
-   netsh advfirewall firewall add rule name="opencode web" dir=in action=allow protocol=TCP localport=8090
-   ```
+### Клиент: `dist/OCShellClient.exe` (PE32 x86)
 
-Браузер на Win7 x86: Chrome 109 или Firefox 115 ESR (32-bit). IE11 не подойдёт —
-веб-интерфейс использует современный JavaScript.
+1. Скопируйте `OCShellClient.exe` и `server.ini` в одну папку на 32-битной Win7
+   (например, `C:\OCShell\`).
+2. Настройте `server.ini`:
+   ```ini
+   [server]
+   host=192.0.2.10
+   port=8090
+   token=ocshell
+   supermium=C:\Program Files\Supermium\chrome.exe
+   ```
+3. Запустите `OCShellClient.exe` (или ярлык с рабочего стола).
 
-Плюсы схемы: тяжёлый Bun-рантайм остаётся 64-битным, а 32-битный клиент
-не требует никаких шимов и работает в любом современном браузере.
+Что делает клиент:
+- проверяет TCP-доступность `host:port` (таймаут 2 с);
+- если сервер не отвечает — стучит на мост `http://host:8011/start?token=…`
+  и ждёт до 25 с, пока `opencode web` поднимется;
+- находит Supermium (ini → реестр → `C:\Program Files\Supermium`,
+  `C:\Program Files\Supermium`; поддерживаются оба имени — `supermium.exe`
+  и `chrome.exe`);
+- запускает `chrome.exe --app=http://host:port` с отдельным профилем
+  `%LOCALAPPDATA%\OCShellClient\profile`.
+
+### Мост автозапуска: `dist/OCShellBridge.cmd`
+
+Запускается на **64-битной** машине рядом с распакованным пакетом.
+Поднимает HTTP-агент на `0.0.0.0:8011`:
+- `GET /status` → `{"running": true, "url": "http://<ip>:8090"}`
+- `POST /start?token=ocshell` → запускает `portable\opencode.exe web --hostname 0.0.0.0 --port 8090`,
+  если тот ещё не работает.
+
+Конфиг — `dist/bridge.ini` (порт, токен, путь к opencode, web-порт).
+Для автозапуска положите ярлык на `OCShellBridge.cmd` в автозагрузку.
+
+### Проверено
+
+Нетбук 192.0.2.20 (Windows 7 Ultimate 32-bit, Supermium 122):
+клиент открывает окно **OpenCode** без браузерной обвязки, интерфейс
+opencode загружается с хоста `192.0.2.10:8090`.
+Тяжёлый Bun-рантайм остаётся 64-битным, 32-битный клиент не требует шимов.
 
 ---
 
