@@ -2,6 +2,13 @@
 
 Порт [opencode](https://opencode.ai) (Bun SEA, v1.19.3) под **Windows 7 SP1 x64**.
 
+> **НОВОЕ — нативный порт для Win7 x32 (ноябрь 2026):** сервер OpenCode теперь
+> работает целиком на 32-битной Windows 7 — Node 22 x86 + шимы, без Bun и без
+> второго x64-компьютера. LLM-тесты OpenCode Go (deepseek-v4.1-flash,
+> iceman-contributor-free) и 10 free-моделей OpenRouter пройдены на реальном
+> нетбуке. Подробности: [docs/PORT-native-x32.md](docs/PORT-native-x32.md),
+> скриншоты с нетбука: [screenshots/](screenshots/).
+
 Готовый файл: [`dist/OCShellWin7.exe`](dist/OCShellWin7.exe) — самораспаковывающийся portable-пакет (~60 МБ).
 
 ---
