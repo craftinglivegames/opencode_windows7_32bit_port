@@ -1,5 +1,11 @@
 # Спайк: порт opencode 1.19.3 с Bun на Node x86 для Windows 7
 
+> **Актуальный статус (09.11.2026):** UI-баг «новая сессия» исправлен,
+> список моделей работает, пакет пересобран с `OpenCode.exe`, фиксами путей
+> и `enabled_providers`. Актуальное описание — в
+> [../PORT-native-x32.md](../PORT-native-x32.md) и [../../README.md](../../README.md).
+> Разделы ниже — исторический отчёт спайка.
+
 Дата: 2026-11-05 (обновлено ночью, см. раздел «Обновление» в конце)
 Исходники: `anomalyco/opencode`, тег `v1.19.3` (коммит `e3c4eb2`)
 Цель: понять, реально ли заменить Bun на Node 22 x86 и получить локальный 32-битный opencode.
@@ -258,10 +264,13 @@ bun build packages/opencode/src/index.ts --target=node \
    Groq с нетбука блокируется Cloudflare (403) — ограничение провайдера, не порта.
 3. ~~Портативный пакет~~ — **СДЕЛАНО**: `dist/OpenCode-Win7-x32-portable.zip` (54 МБ).
    Состав: node\ (патченый node.exe x86 + ocshim32/ocadv32), app\ (index.js, impl/,
-   webui/, node_modules: node-pty ia32, @opentui/*, solid-js-цепочка), OpenCode.cmd
-   (сервер на 127.0.0.1:4096 + Supermium --app), run_server.cmd (0.0.0.0 для LAN),
-   README.txt. Проверен локально на x86-ноде из пакета: `--version` → local,
-   serve → UI 200 + health OK. Генератор: tools/make_portable.py.
+   webui/, node_modules: node-pty ia32, @opentui/*, solid-js-цепочка), **OpenCode.exe**
+   (нативный лаунчер: скрытый запуск сервера + Supermium --app, режимы --serve-only/--stop),
+   OpenCode.cmd (резерв), run_server.cmd (0.0.0.0 для LAN), README.txt.
+   В пакет автоматически применяются release-патчи (`tools/patch_release.py`):
+   реальный каталог/worktree проекта, синхронные переходы UI, cache-bust `?v=2`.
+   Проверен на реальном нетбуке: health 200, UI 200, создание сессии, список моделей,
+   OpenCode Go и free-модели OpenRouter. Генератор: tools/make_portable.py.
 4. Firewall нетбука выключен — при боевом использовании вернуть включённым и добавить
    правило (netsh-правило через WMI не применилось — проверить руками на нетбуке).
 

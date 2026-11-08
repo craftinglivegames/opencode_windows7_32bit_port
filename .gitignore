@@ -1,0 +1,25 @@
+# build artifacts
+build/*.obj
+build/*.lib
+build/*.exp
+build/*.ilk
+build/*.pdb
+build/zlib/
+build/nodeshim_x86/
+
+# python
+__pycache__/
+*.pyc
+
+# local package / logs
+dist/portable/
+dist/*.log
+spike/bundle_out/
+spike/opencode-src/
+spike/_bun-cache/
+spike/logs/
+
+# OS junk
+Thumbs.db
+desktop.ini
+.DS_Store

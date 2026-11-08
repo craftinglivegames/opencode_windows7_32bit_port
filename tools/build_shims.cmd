@@ -15,7 +15,7 @@ call %VC% x64 >nul || exit /b 1
 set BUILD=%ROOT%\build
 if not exist "%BUILD%" mkdir "%BUILD%"
 set HOST_EXE=%1
-if "%HOST_EXE%"=="" set HOST_EXE=C:\Users\build\AppData\Roaming\npm\node_modules\opencode-ai\bin\opencode.exe
+if "%HOST_EXE%"=="" set HOST_EXE=%APPDATA%\npm\node_modules\opencode-ai\bin\opencode.exe
 
 echo === generating export definitions ===
 python "%ROOT%\tools\shim_tool.py" gen_defs "%HOST_EXE%" "%BUILD%" || exit /b 1
