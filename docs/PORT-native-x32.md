@@ -110,7 +110,7 @@ THIRD_PARTY_NOTICES.txt  состав, лицензии и список изме
 [4/4] iceman-contributor-free (req 3):  → Paris                  [exit 0]
 ```
 
-## Free-модели OpenRouter (батч-тест)
+## Free-модели OpenRouter (батч-тест 07.11.2026)
 
 10 из 12 работают (`opencode run` → OK, exit 0):
 `nvidia/nemotron-3.5-lightning:free`, `-super-vl:free`, `-ultra-550b-a55b:free`,
@@ -118,9 +118,10 @@ THIRD_PARTY_NOTICES.txt  состав, лицензии и список изме
 `recursive/flint-v1.0:free`, `xingchen-agi/xing4.0-29b-a4b:free`,
 `liquid/lfm-2.5-2.6b:free`, `liquid/lfm-3-1.7b:free`.
 
-Не работают: `dots-studio/dots-3-note-preview:free` (UnknownError провайдера),
+Не работают (на 07.11.2026): `dots-studio/dots-3-note-preview:free` (UnknownError провайдера),
 `google/gemma-4-*:free` (upstream rate-limit). Groq блокируется Cloudflare (403)
-из сети нетбука.
+из сети нетбука. Каталог ротируется — актуальные free подтягиваются
+`tools/sync_free_models.cmd` (см. README, «Модели и ключи»).
 
 ## Известные ограничения
 

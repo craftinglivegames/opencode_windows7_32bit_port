@@ -126,6 +126,17 @@ for src_rel, dst_name in (
         raise SystemExit("license file missing: " + src_abs)
     shutil.copy2(src_abs, os.path.join(PKG, dst_name))
 
+# 2d. free-model sync helper (refreshes models.json cache + opencode.json).
+# Runs on Win7 with the bundled node, no extra downloads needed.
+for sync_rel in (
+    os.path.join("tools", "sync_free_models.js"),
+    os.path.join("tools", "sync_free_models.cmd"),
+):
+    sync_abs = os.path.join(ROOT, sync_rel)
+    if not os.path.isfile(sync_abs):
+        raise SystemExit("sync helper missing: " + sync_abs)
+    shutil.copy2(sync_abs, os.path.join(PKG, os.path.basename(sync_rel)))
+
 # 3. launchers
 OPENCODE_CMD = """@echo off
 setlocal
@@ -231,6 +242,14 @@ web-UI (app\webui), терминал — node-pty x86 (winpty).
   cohere/north-mini-code:free                 recursive/flint-v1.0:free
   xingchen-agi/xing4.0-29b-a4b:free           liquid/lfm-2.5-2.6b:free
   liquid/lfm-3-1.7b:free                      (google/gemma-4-*:free — нестабильны upstream)
+
+Каталог models.dev меняется: модели уходят в deprecated. Актуальный список
+бесплатных подтянет sync_free_models.cmd (лежит рядом, нужен только интернет):
+  C:\OpenCode\sync_free_models.cmd
+Скрипт обновит кэш %USERPROFILE%\.cache\opencode\models.json и допишет живые
+free-модели в opencode.json (с бэкапом). После него перезапустите сервер
+(закройте окно сервера и запустите OpenCode.cmd заново) — список в интерфейсе
+читается один раз при старте сервера.
 
 Где лежат данные
 ----------------

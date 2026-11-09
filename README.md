@@ -77,23 +77,52 @@
   Иначе сервер один раз тянет полный каталог models.dev (7 МБ, 20–40 с) —
   именно из-за этого список моделей мог выглядеть пустым.
 
-- **Win7 x32: кэш моделей не создаётся автоматически.** Модельный портал
-  models.opencode.ai недоступен на Win7 (TLS 1.0/1.1, файрвол или старый
-  корневой сертификат), поэтому при первом запуске opencode не может скачать
-  список моделей и кэш не создаётся — при каждом старте снова уходит в сеть,
-  снова падает, UI остаётся пустым.
+- **Кэш каталога моделей.** При первом запуске сервер качает список моделей
+  с models.opencode.ai (~6 МБ) и кладёт в
+  `%USERPROFILE%\.cache\opencode\models.json`. Этот портал **может быть
+  недоступен** с Win7 (старый TLS/корневой сертификат, файрвол) — тогда кэш
+  не создаётся, сервер при каждом старте уходит в сеть и падает, а список
+  моделей в UI пуст (проверяется строкой `Failed to fetch models.dev`
+  в `logs\server.log`).
 
-  **Быстрое лечение (оффлайн):** скачайте файл один раз вручную и положите в кэш:
+  **Быстрое лечение:** обновите кэш и конфиг скриптом из пакета
+  (нужен только интернет, работает на Win7 штатным node из пакета):
 
   ```bat
-  mkdir %USERPROFILE%\.cache\opencode 2>nul
-  curl -o %USERPROFILE%\.cache\opencode\models.json https://models.opencode.ai/api.json
+  C:\OpenCode\sync_free_models.cmd
   ```
 
-  После этого перезапустите OpenCode.exe — он сразу прочитает кэш, не пойдёт
-  в сеть, и бесплатные модели (nemotron-3-ultra-free, glm-4.7-free,
-  ring-2.6-1t-free и др.) появятся в списке. Если модели не появились —
-  проблема в конфиге: проверьте `"enabled_providers": ["opencode-go", "openrouter"]`.
+  Скрипт скачает каталог, обновит кэш, допишет живые free-модели
+  в `opencode.json` (с бэкапом `opencode.json.bak.*`, существующие записи
+  не трогает) и напомнит перезапустить сервер. Скрипт лежит в
+  [`tools/sync_free_models.cmd`](tools/sync_free_models.cmd) (там же
+  [`sync_free_models.js`](tools/sync_free_models.js)); свежие пакеты
+  содержат оба файла рядом с `OpenCode.cmd`.
+
+  Вручную (если скрипт не справился): скачайте файл браузером с
+  `https://models.opencode.ai/api.json`, положите в
+  `%USERPROFILE%\.cache\opencode\models.json` и перезапустите сервер.
+
+- **Важно: сервер читает список моделей один раз при старте.** После
+  обновления кэша или `opencode.json` обязательно перезапустите сервер
+  (закройте его окно и запустите `OpenCode.cmd` заново) — иначе UI
+  продолжит показывать старый список. Кнопки «обновить» для этого нет.
+
+- **Почему в списке нет ожидаемых free-моделей.** UI показывает ровно то,
+  что отдаёт сервер (`/provider`): для каждого включённого провайдера —
+  модели из каталога models.dev **за вычетом `deprecated`**. У провайдера
+  `opencode-go` (гейтвей `.../inference/go/...`) бесплатных всего три:
+  `beam-free`, `crouton-alpha-free`, `iceman-contributor-free` — и первые
+  два из региона BY/RU отклоняются апстримом
+  (`This model is not available in your country`). Модели семейства
+  `opencode/deepseek-*-free`, `mimo-*-free`, `nemotron-*-free` относятся
+  к каталогу провайдера `opencode` (основной гейтвей) и через ключ из
+  пакета недоступны. Поиск по слову `Free` в селекторе модели показывает
+  верхние совпадения — длинный список нужно **проскроллить**.
+  Проверено `opencode run` на реальном нетбуке: `iceman-contributor-free`
+  и `deepseek-v4.1-flash` отвечают, `beam-free`/`crouton-alpha-free` —
+  геоблок, `mimo-*/deepseek-*-free` через `opencode-go` —
+  `Model is unavailable`.
 
 Пример конфига с бесплатными моделями OpenRouter — в
 [`docs/PORT-native-x32.md`](docs/PORT-native-x32.md) и в `README.txt` внутри архива.
@@ -116,13 +145,21 @@ Windows 7 Максимальная SP1 x32, hostname `WIN7-NETBOOK`.
 | Терминал (node-pty / winpty) | ✅ `cmd.exe`, exit 0 |
 | Доступ по LAN | ✅ `http://192.0.2.20:4096` |
 
-Free-модели (10 из 12, `opencode run` → OK):
+Free-модели OpenRouter (батч-тест 07.11.2026, `opencode run` → OK 10 из 12):
 `nvidia/nemotron-3.5-lightning:free`, `-super-vl:free`, `-ultra-550b-a55b:free`,
 `-3-nano-omni-30b-a3b-reasoning:free`, `cohere/north-mini-code:free`,
 `recursive/flint-v1.0:free`, `xingchen-agi/xing4.0-29b-a4b:free`,
 `liquid/lfm-2.5-2.6b:free`, `liquid/lfm-3-1.7b:free`.
-Не работают: `dots-studio/dots-3-note-preview:free` (ошибка провайдера),
+Не работали тогда: `dots-studio/dots-3-note-preview:free` (ошибка провайдера),
 `google/gemma-4-*:free` (нестабильный upstream). Groq блокируется Cloudflare.
+
+> Каталог models.dev ротируется: часть моделей выше уже помечена
+> `deprecated` (ноябрь 2026). Живые free на 09.11.2026 — в каталоге
+> провайдера `opencode`: `deepseek-v4.1-flash-free`, `mimo-v2.6-flash-free`,
+> `nemotron-3.5-lightning/super-vl-free`, `glm-5.3-flash-free`, `iceman-free`,
+> `beam/crouton-alpha/flint-40b/inkling-2-small-free`; у `opencode-go` —
+> только `beam/crouton-alpha/iceman-contributor-free`. Актуальный список
+> подтянет `sync_free_models.cmd` (см. «Модели и ключи» выше).
 
 ### Скриншоты
 
