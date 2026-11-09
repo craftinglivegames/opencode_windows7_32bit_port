@@ -13,6 +13,7 @@ __pycache__/
 
 # local package / logs
 dist/*.zip
+dist/OCShellWin7.exe
 dist/portable/
 dist/*.log
 spike/bundle_out/

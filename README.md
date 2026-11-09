@@ -181,9 +181,10 @@ python tools\make_portable.py
 
 ## x64-ветка (Bun SEA) — историческая
 
-[`dist/OCShellWin7.exe`](dist/OCShellWin7.exe) — самораспаковывающийся лаунчер
-для Win7 SP1 x64, который патчит `opencode.exe` (Bun SEA) на шимы
-`ocshim32.dll` / `ocn.dll` и перерисовывает ANSI в консоли Win7.
+`OCShellWin7.exe` — самораспаковывающийся лаунчер для Win7 SP1 x64, который
+патчит `opencode.exe` (Bun SEA) на шимы `ocshim32.dll` / `ocn.dll` и
+перерисовывает ANSI в консоли Win7. Собирается `tools\build_shell.cmd`
+(MSVC x64); бинарник на 58 МБ в репозитории не хранится.
 
 **Текущий статус:** самораспаковка и шимы работают, но Bun 1.3.14 на Win7
 завершается с кодом 3 без вывода. Это ограничение самого Bun, а не лаунчера;
