@@ -25,7 +25,8 @@ web-UI и терминал целиком на нетбуке, второй x64-
 
 ## Релизный пакет
 
-`dist/OpenCode-Win7-x32-portable.zip` (~54 МБ):
+Релизный архив (~54 МБ) собирается `python tools/make_portable.py`; в git он
+не хранится, готовый файл прикладывается к GitHub Release.
 
 ```
 node\node.exe      Node 22.23.4 x86 + ocshim32.dll, ocadv32.dll

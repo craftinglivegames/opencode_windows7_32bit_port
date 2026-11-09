@@ -94,7 +94,26 @@ for store, arc in [
         continue
     copy_tree(src, os.path.join(PKG, "app", "node_modules", arc))
 
-# 2b. licenses and third-party notices (required by the MIT/BSD terms of the
+# 2b. scrub the build-machine user name from shipped files (node-gyp
+# *.vcxproj, config.gypi, PDB paths embedded in node-pty binaries and the
+# bundle). The replacement has the same byte length, so PE/PDB structures
+# stay intact; no literal user name is hard-coded here.
+_build_user = (os.environ.get("USERNAME") or os.path.basename(os.path.expanduser("~"))).encode("ascii", "ignore")
+if len(_build_user) >= 3:
+    _repl = (b"build" + b"_" * len(_build_user))[:len(_build_user)]
+    for r, dirs, files in os.walk(PKG):
+        for f in files:
+            p = os.path.join(r, f)
+            try:
+                with open(p, "rb") as fh:
+                    data = fh.read()
+            except OSError:
+                continue
+            if _build_user in data:
+                with open(p, "wb") as fh:
+                    fh.write(data.replace(_build_user, _repl))
+
+# 2c. licenses and third-party notices (required by the MIT/BSD terms of the
 # bundled components: upstream notices must travel with binary redistributions)
 for src_rel, dst_name in (
     ("LICENSE", "LICENSE.txt"),

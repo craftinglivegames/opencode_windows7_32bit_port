@@ -11,7 +11,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, "build")
-EXE = r"C:\Users\build\AppData\Roaming\npm\node_modules\opencode-ai\bin\opencode.exe"
+EXE = r"C:\work\AppData\Roaming\npm\node_modules\opencode-ai\bin\opencode.exe"
 
 variant = sys.argv[1] if len(sys.argv) > 1 else "forward_all"
 

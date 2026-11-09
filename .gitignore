@@ -12,6 +12,7 @@ __pycache__/
 *.pyc
 
 # local package / logs
+dist/*.zip
 dist/portable/
 dist/*.log
 spike/bundle_out/

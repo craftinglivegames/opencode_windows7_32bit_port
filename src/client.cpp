@@ -203,10 +203,10 @@ static const char kDefaultIni[] =
     "; supermium - optional explicit path to supermium.exe.\r\n"
     "\r\n"
     "[server]\r\n"
-    "host=192.0.2.10\r\n"
+    "host=127.0.0.1\r\n"
     "port=8090\r\n"
     "token=ocshell\r\n"
-    "; supermium=D:\\Program Files\\Supermium\\supermium.exe\r\n";
+    "; supermium=C:\\Program Files\\Supermium\\supermium.exe\r\n";
 
 static bool WriteDefaultIni(const std::wstring& path) {
   HANDLE h = CreateFileW(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
@@ -220,7 +220,7 @@ static bool WriteDefaultIni(const std::wstring& path) {
 }
 
 static bool LoadConfig(Config& cfg, std::wstring& err) {
-  cfg.host = L"192.0.2.10";
+  cfg.host = L"127.0.0.1";
   cfg.port = 8090;
   cfg.token = L"ocshell";
   cfg.supermium.clear();
@@ -243,7 +243,7 @@ static bool LoadConfig(Config& cfg, std::wstring& err) {
     return Trim(std::wstring(buf, n));
   };
 
-  std::wstring host = get(L"host", L"192.0.2.10");
+  std::wstring host = get(L"host", L"127.0.0.1");
   std::wstring portStr = get(L"port", L"8090");
   std::wstring token = get(L"token", L"ocshell");
   std::wstring sup = get(L"supermium", L"");
@@ -528,7 +528,7 @@ static std::wstring FindSupermium(const Config& cfg) {
 
   // 4. well known installation folders
   add(L"C:\\Program Files\\Supermium", L"C:\\Program Files\\Supermium");
-  add(L"D:\\Program Files\\Supermium", L"D:\\Program Files\\Supermium");
+  add(L"C:\\Program Files\\Supermium", L"C:\\Program Files\\Supermium");
   std::wstring programFiles = GetEnv(L"ProgramFiles");
   if (!programFiles.empty()) add(L"%ProgramFiles%\\Supermium", programFiles + L"\\Supermium");
   std::wstring programFilesX86 = GetEnv(L"ProgramFiles(x86)");
@@ -713,7 +713,7 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR lpCmdLine, int) {
   if (supermium.empty()) {
     Fail(L"Не найден supermium.exe.\r\n\r\n"
          L"Укажите полный путь в файле:\r\n%s\r\n\r\n"
-         L"Пример:\r\n[server]\r\nsupermium=D:\\Program Files\\Supermium\\supermium.exe\r\n\r\n"
+         L"Пример:\r\n[server]\r\nsupermium=C:\\Program Files\\Supermium\\supermium.exe\r\n\r\n"
          L"Либо установите Supermium в стандартную папку Program Files.",
          cfg.iniPath.c_str());
     return 6;

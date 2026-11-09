@@ -114,9 +114,12 @@ python tools\make_portable.py
 ```
 
 Скрипт собирает `spike\bundle_out\portable_x86`, кладёт `OpenCode.exe`,
-`OpenCode.cmd`, `run_server.cmd`, README, применяет release-патчи
-(`tools\patch_release.py`) и упаковывает
+`OpenCode.cmd`, `run_server.cmd`, README, лицензии, применяет release-патчи
+(`tools\patch_release.py`), вычищает локальные пути сборочной машины из
+`node-pty` (`config.gypi`, `*.vcxproj`, PDB-пути в `.node`/`.dll`) и упаковывает
 `dist\OpenCode-Win7-x32-portable.zip`.
+
+Архив в git не коммитится (см. `.gitignore`) — это артефакт релиза.
 
 ## 6. Release-патчи
 

@@ -391,7 +391,7 @@ static std::wstring FindBrowser(const std::wstring& dir) {
     candidates.push_back(Join(pf86, L"Supermium\\chrome.exe"));
     candidates.push_back(Join(pf86, L"Supermium\\Application\\chrome.exe"));
   }
-  candidates.push_back(L"D:\\Program Files\\Supermium\\chrome.exe");
+  candidates.push_back(L"C:\\Program Files\\Supermium\\chrome.exe");
   candidates.push_back(L"C:\\Program Files\\Supermium\\chrome.exe");
   for (size_t i = 0; i < candidates.size(); ++i)
     if (FileExists(candidates[i])) return candidates[i];

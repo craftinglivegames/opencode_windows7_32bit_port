@@ -21,8 +21,8 @@
 ## Скачать и запустить (x32, рекомендуется)
 
 **Скачать:** [последний релиз](https://github.com/craftinglivegames/opencode_windows7_32bit_port/releases/latest)
-→ файл **`OpenCode-Win7-x32-portable.zip`** (~52 МБ). Копия лежит в репозитории:
-[`dist/OpenCode-Win7-x32-portable.zip`](dist/OpenCode-Win7-x32-portable.zip).
+→ файл **`OpenCode-Win7-x32-portable.zip`** (~52 МБ). В git архив не хранится:
+он собирается `python tools/make_portable.py` и прикладывается к релизу.
 
 ### Требования
 
@@ -60,7 +60,7 @@
 
 | Файл | Размер | SHA-256 |
 |---|---|---|
-| `OpenCode-Win7-x32-portable.zip` | 54 539 440 | `b3db84aaac2caaf0b9d1051b28050b84d3436c00ae76be1bd6aec42dfe639601` |
+| `OpenCode-Win7-x32-portable.zip` | 54 539 370 | `2743e0aba1e9591141533ea1ceb605dbb30ff23b76592ff964db408b796e61f5` |
 | `OpenCode.exe` | 153 600 | `f5c6ee1cbf6297c416b47e0a975eb5f711bc3a45c7d5a073024349a44d035916` |
 
 Проверка: `certutil -hashfile OpenCode-Win7-x32-portable.zip SHA256`.

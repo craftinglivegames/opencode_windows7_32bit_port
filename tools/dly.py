@@ -1,5 +1,5 @@
 ﻿import struct
-path = r"C:\Users\build\AppData\Roaming\npm\node_modules\opencode-ai\bin\opencode.exe"
+path = r"C:\work\AppData\Roaming\npm\node_modules\opencode-ai\bin\opencode.exe"
 data = open(path,"rb").read()
 e = struct.unpack_from("<I", data, 0x3C)[0]
 coff = e+4
