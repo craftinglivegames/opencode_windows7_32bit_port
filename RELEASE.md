@@ -26,10 +26,13 @@ git diff --stat
 
 | Файл | Размер | SHA-256 |
 |---|---|---|
-| `dist/OpenCode-Win7-x32-portable.zip` | 54 509 726 | `b65a786d6294b84de12c47f19f6f91cec3a5699ae785ff2e5e5cbeeb00ac1b0e` |
+| `dist/OpenCode-Win7-x32-portable.zip` | 54 539 440 | `b3db84aaac2caaf0b9d1051b28050b84d3436c00ae76be1bd6aec42dfe639601` |
 | `dist/OpenCode.exe` | 153 600 | `f5c6ee1cbf6297c416b47e0a975eb5f711bc3a45c7d5a073024349a44d035916` |
 
 - [ ] Архив распаковывается, внутри `OpenCode.exe`, `node\`, `app\`, `README.txt`.
+- [ ] В архиве есть `LICENSE.txt`, `LICENSE-opencode.txt`, `LICENSE-nodejs.txt`,
+      `THIRD_PARTY_NOTICES.txt` (требование MIT: уведомления upstream должны
+      ехать вместе с бинарной поставкой).
 - [ ] `OpenCode.exe --selftest` пишет `logs\launcher.log`.
 - [ ] На чистой Win7 SP1 x32 после распаковки: запуск → браузер → health 200.
 - [ ] `README.md` и `docs/PORT-native-x32.md` не противоречат друг другу.
@@ -58,7 +61,9 @@ git push origin v0.2.0-x32
    - `enabled_providers` в конфиге для быстрого списка моделей;
    - известные ограничения: нет TUI, сервер без пароля, free-модели зависят
      от доступности провайдера;
-   - контрольные суммы SHA-256 (таблица выше).
+   - контрольные суммы SHA-256 (таблица выше);
+   - лицензии: MIT на код порта, MIT-уведомления opencode и Node.js сохранены
+     в архиве; проект неофициальный и не связан с авторами OpenCode.
 5. Если репозиторий публичный — включить Issues и указать в шаблоне,
    что это неофициальный порт.
 

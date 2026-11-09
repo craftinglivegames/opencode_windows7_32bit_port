@@ -94,6 +94,19 @@ for store, arc in [
         continue
     copy_tree(src, os.path.join(PKG, "app", "node_modules", arc))
 
+# 2b. licenses and third-party notices (required by the MIT/BSD terms of the
+# bundled components: upstream notices must travel with binary redistributions)
+for src_rel, dst_name in (
+    ("LICENSE", "LICENSE.txt"),
+    (os.path.join("third_party", "opencode-LICENSE.txt"), "LICENSE-opencode.txt"),
+    (os.path.join("third_party", "node-LICENSE.txt"), "LICENSE-nodejs.txt"),
+    ("THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.txt"),
+):
+    src_abs = os.path.join(ROOT, src_rel)
+    if not os.path.isfile(src_abs):
+        raise SystemExit("license file missing: " + src_abs)
+    shutil.copy2(src_abs, os.path.join(PKG, dst_name))
+
 # 3. launchers
 OPENCODE_CMD = """@echo off
 setlocal
@@ -206,6 +219,16 @@ web-UI (app\webui), терминал — node-pty x86 (winpty).
 Конфиг:   %USERPROFILE%\.config\opencode
 Кэш:      %USERPROFILE%\.cache\opencode
 Логи лаунчера: logs\launcher.log, логи сервера: logs\server.log
+
+Лицензии
+--------
+Код порта (лаунчер, шимы, скрипты сборки) - MIT, см. LICENSE.txt.
+OpenCode - MIT (c) 2025 opencode: LICENSE-opencode.txt. Мы изменили сборку
+(перенос Bun -> Node, правки UI); список изменений - THIRD_PARTY_NOTICES.txt.
+Node.js 22 x86 - MIT и лицензии встроенных библиотек: LICENSE-nodejs.txt.
+Пакеты в app\node_modules сохраняют собственные LICENSE.
+Сборка неофициальная, с авторами OpenCode не связана; распространяется
+"как есть", без гарантий.
 
 Требования
 ----------

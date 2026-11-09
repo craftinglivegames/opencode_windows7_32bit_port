@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Вопросы по оригинальному OpenCode
+    url: https://github.com/sst/opencode
+    about: Проблемы и вопросы, не связанные с портом под Windows 7 (macOS, Linux, x64, TUI)
+  - name: Документация порта
+    url: https://github.com/craftinglivegames/opencode_windows7_32bit_port/blob/main/docs/PORT-native-x32.md
+    about: Что уже проверено, известные ограничения и как устроен порт

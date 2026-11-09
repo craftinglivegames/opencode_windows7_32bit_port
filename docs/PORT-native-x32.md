@@ -35,6 +35,9 @@ OpenCode.exe       нативный лаунчер (GUI, без консоли)
 OpenCode.cmd       резервный запуск через bat
 run_server.cmd     сервер на 0.0.0.0:4096 (для LAN)
 README.txt         инструкция для конечного пользователя
+LICENSE.txt        MIT на код порта
+LICENSE-opencode.txt, LICENSE-nodejs.txt  лицензии upstream-компонентов
+THIRD_PARTY_NOTICES.txt  состав, лицензии и список изменений
 ```
 
 Лаунчер `OpenCode.exe` (`src/local_launcher.cpp`):
