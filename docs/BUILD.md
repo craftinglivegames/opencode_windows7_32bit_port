@@ -14,14 +14,17 @@
 | `node-v22.23.4-win-x86.zip` | официальный x86-архив Node 22 |
 | исходники opencode | тег `v1.19.3`, коммит `e3c4eb2` (`anomalyco/opencode`) |
 
-Дерево сборки (пути по умолчанию, можно переопределить `OPENCODE_SPIKE`):
+Дерево сборки (пути по умолчанию, можно переопределить `OPENCODE_SPIKE`).
+Всё, что здесь получается, — результаты сборки: в git они не хранятся.
 
 ```
 spike/
   nodeshim/                 node.exe + ocshim32.dll + ocadv32.dll
   opencode-src/             клон opencode с патчами порта
   bundle_out/portable_x86/  собранный пакет (создаёт make_portable.py)
+build/                      объектники и DLL шимов (tools\build_*.cmd)
 dist/OpenCode.exe           лаунчер (tools\build_launcher.cmd)
+dist/OCShellClient.exe      legacy-клиент (tools\build_client.cmd)
 ```
 
 ## 1. Node 22 x86 и шимы

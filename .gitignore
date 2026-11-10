@@ -4,6 +4,7 @@ build/*.lib
 build/*.exp
 build/*.ilk
 build/*.pdb
+build/*.dll
 build/zlib/
 build/nodeshim_x86/
 
@@ -11,9 +12,9 @@ build/nodeshim_x86/
 __pycache__/
 *.pyc
 
-# local package / logs
+# local package / logs (binaries are build outputs, shipped only in Releases)
+dist/*.exe
 dist/*.zip
-dist/OCShellWin7.exe
 dist/portable/
 dist/*.log
 spike/bundle_out/

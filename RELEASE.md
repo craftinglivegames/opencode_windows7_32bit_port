@@ -24,14 +24,17 @@ git diff --stat
 
 ## 2. Проверить артефакты
 
-Архив и exe — сборочные артефакты, **в git не коммитятся** (в `.gitignore`);
-они собираются `tools\make_portable.py` / `tools\build_launcher.cmd` и
-загружаются в GitHub Release.
+Всё собираемое — `OpenCode.exe`, `OCShellClient.exe`, шимы и архив — в git
+**не коммитится** (в `.gitignore`): это выходы `tools\build_launcher.cmd`,
+`tools\build_client.cmd`, `tools\build_shims*.cmd` и `tools\make_portable.py`.
+В Release загружается только архив.
 
 | Файл | Размер | SHA-256 |
 |---|---|---|
 | `dist/OpenCode-Win7-x32-portable.zip` | 54 539 370 | `2743e0aba1e9591141533ea1ceb605dbb30ff23b76592ff964db408b796e61f5` |
-| `dist/OpenCode.exe` | 153 600 | `f5c6ee1cbf6297c416b47e0a975eb5f711bc3a45c7d5a073024349a44d035916` |
+
+Внутри архива `OpenCode.exe` (153 600 байт,
+SHA-256 `f5c6ee1cbf6297c416b47e0a975eb5f711bc3a45c7d5a073024349a44d035916`).
 
 - [ ] Архив распаковывается, внутри `OpenCode.exe`, `node\`, `app\`, `README.txt`.
 - [ ] В архиве есть `LICENSE.txt`, `LICENSE-opencode.txt`, `LICENSE-nodejs.txt`,
@@ -55,9 +58,8 @@ git push origin v0.2.0-x32
 
 1. Releases → Draft a new release → тег `v0.2.0-x32`.
 2. Заголовок: **OpenCode 1.19.3 for Windows 7 x32 (native port)**.
-3. Приложить `dist/OpenCode-Win7-x32-portable.zip` как asset
-   (файл в репозитории можно оставить или удалить после загрузки — GitHub
-   ограничивает 100 МБ на файл, архив проходит).
+3. Приложить `dist/OpenCode-Win7-x32-portable.zip` как asset (в git архива нет;
+   GitHub ограничивает 100 МБ на файл, архив проходит).
 4. В описании указать:
    - требования: Windows 7 SP1, UCRT (KB2999226), ~200 МБ на диске;
    - запуск: распаковать → `OpenCode.exe`;
@@ -74,5 +76,7 @@ git push origin v0.2.0-x32
 ## 5. После публикации
 
 - [ ] Проверить скачивание архива без авторизации.
-- [ ] Проверить, что ссылки в README ведут на существующие файлы.
-- [ ] Добавить в README бейдж релиза (по желанию).
+- [ ] Проверить, что ссылки в README (`README.md` и `README.ru.md`) ведут на
+      существующие файлы и друг на друга.
+- [ ] Убедиться, что release-бейдж в README показывает версию, а не
+      `no releases or repo not found`.
