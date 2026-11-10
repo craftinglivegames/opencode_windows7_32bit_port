@@ -172,9 +172,26 @@ Applied to the release archive and reproducible with
    directory, so the model list was empty. The real directory is used now.
 2. **Solid 1.9.10 transition bug.** Memos created inside a router transition were
    read as `undefined`, so "New session" failed with
-   `Cannot read properties of undefined (reading 'child' / 'directory' / 'data')`.
-   Transitions in the bundle now run synchronously.
-3. **Browser cache.** The main chunk is marked `?v=2` so old JS does not stick.
+   `Cannot read properties of undefined (reading 'child' / 'directory' / 'data')`
+   and later with `<X> context must be used within a context provider` covering
+   half the screen while the chat below kept working. Transitions in the bundle
+   now run without deferred memos and restore the Solid owner, so deferred
+   renders stay inside the provider chain.
+3. **Context registry safety net.** Deferred renders of lazily loaded chunks are
+   a known upstream opencode bug (issues
+   [#28857](https://github.com/anomalyco/opencode/issues/28857),
+   [#28771](https://github.com/anomalyco/opencode/issues/28771)): some screens
+   and dialogs may render outside their providers. Providers additionally
+   publish their values into a global registry, and a context read that misses
+   the local owner chain takes the last mounted provider value instead of
+   throwing; `useDialog` and Kobalte's internal dialog context no longer kill
+   the tab.
+4. **Browser cache.** The main chunk is marked `?v=3` so old JS does not stick.
+
+Known limitation: if the SPA session has already been inside a draft, the
+settings dialog opened from the home screen may not open (it used to kill half
+the screen instead). Reloading the page fixes it. The complete solution is
+rebuilding the bundle from patched upstream sources.
 
 ---
 
