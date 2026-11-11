@@ -19,33 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Scope of this license
-=====================
-
-The MIT license above covers the port code in this repository: the Windows
-launchers (src/), shims (src/ocadv32.cpp, ocshim32), build and packaging
-scripts (tools/), release patches and documentation.
-
-It does NOT cover third-party components that are bundled in the release
-archive or used at build time. Those remain under their own licenses:
-
-- OpenCode 1.19.3 (MIT, Copyright (c) 2025 opencode) — the modified bundle
-  app/index.js and app/webui are derivative works of that project.
-  License text: third_party/opencode-LICENSE.txt
-- Node.js 22 x86 (MIT plus bundled third-party licenses, Copyright Node.js
-  contributors) — node/node.exe is a patched Node.js binary.
-  License text: third_party/node-LICENSE.txt
-- node-pty, @opentui/*, solid-js, seroval, s-js, entities, csstype and other
-  npm packages — each package keeps its own LICENSE file inside the archive.
-- Bun, Visual Studio, Python, Supermium / Chromium are not redistributed by
-  us; they are used only as build tools or are installed by the user.
-
-The full component list, the changes made to upstream code and the trademark
-notice are in THIRD_PARTY_NOTICES.md.
-
-"OpenCode" is the name and trademark of the original project's authors.
-This port is unofficial, is not affiliated with or endorsed by them, and is
-provided "as is" without warranty of any kind.
