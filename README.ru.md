@@ -60,11 +60,11 @@
 
 ### Контрольные суммы
 
-Для архива из последнего релиза (`v0.2.5-x32`):
+Для архива из последнего релиза (`v0.2.6-x32`):
 
 | Файл | Размер | SHA-256 |
 |---|---|---|
-| `OpenCode-Win7-x32-portable.zip` | 54 492 838 | `a1d9cfcbc74277c1bb1ac805a7df1eda099b0f3ca159a8288378b268859d761f` |
+| `OpenCode-Win7-x32-portable.zip` | 54 493 028 | `af28981853bd37f0f6bd946b3e0644c2b9ec5aa8a162364deb7b5f38b403dafa` |
 | `OpenCode.exe` | 159 232 | `bd580bc0f2a319e839e0e5d3e8f83dc6b18d13606d057dcfeaba66d3b406d1e2` |
 
 Проверка: `certutil -hashfile OpenCode-Win7-x32-portable.zip SHA256`.
@@ -336,6 +336,10 @@ README.ru.md  полная русская документация (README.md �
 ---
 
 ## Лицензия, статус и благодарности
+
+**Автор:** Никита Шустол — [vk.ru/nikitashustol](https://vk.ru/nikitashustol)
+**Студия:** [CraftingLiveGames](https://craftinglivegames.xyz/) — порт
+разрабатывается и поддерживается там.
 
 **Это неофициальный порт.** Он не связан с авторами OpenCode, не одобрен и не
 поддерживается ими; название «OpenCode» используется только для указания на

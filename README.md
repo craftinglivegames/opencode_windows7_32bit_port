@@ -61,11 +61,11 @@ Headless server: `run_server.cmd`. Logs: `logs\launcher.log`, `logs\server.log`.
 
 ### Checksums
 
-For the archive attached to the latest release (`v0.2.5-x32`):
+For the archive attached to the latest release (`v0.2.6-x32`):
 
 | File | Size | SHA-256 |
 |---|---|---|
-| `OpenCode-Win7-x32-portable.zip` | 54 492 838 | `a1d9cfcbc74277c1bb1ac805a7df1eda099b0f3ca159a8288378b268859d761f` |
+| `OpenCode-Win7-x32-portable.zip` | 54 493 028 | `af28981853bd37f0f6bd946b3e0644c2b9ec5aa8a162364deb7b5f38b403dafa` |
 | `OpenCode.exe` (inside the archive) | 159 232 | `bd580bc0f2a319e839e0e5d3e8f83dc6b18d13606d057dcfeaba66d3b406d1e2` |
 
 Verify: `certutil -hashfile OpenCode-Win7-x32-portable.zip SHA256`.
@@ -287,6 +287,10 @@ Documentation (Russian):
 ---
 
 ## License, status and credits
+
+**Author:** Никита Шустол / Nikita Shustol — [vk.ru/nikitashustol](https://vk.ru/nikitashustol)
+**Studio:** [CraftingLiveGames](https://craftinglivegames.xyz/) — the port is developed
+and maintained there.
 
 **This is an unofficial port.** It is not affiliated with, endorsed by or
 supported by the OpenCode authors; the name "OpenCode" is used only to point at

@@ -5,6 +5,15 @@
 OpenCode, на которой собран релиз). Подробности и файлы — на странице
 [releases](https://github.com/craftinglivegames/opencode_windows7_32bit_port/releases).
 
+## [v0.2.6-x32] — 2026-11-12 (OpenCode 1.19.3)
+
+### Изменено
+
+- В README, `LICENSE` и в `README.txt` внутри архива указаны автор и студия:
+  Никита Шустол ([vk.ru/nikitashustol](https://vk.ru/nikitashustol)),
+  [CraftingLiveGames](https://craftinglivegames.xyz/).
+- Copyright в `LICENSE`: «Nikita Shustol (CraftingLiveGames) and contributors».
+
 ## [v0.2.5-x32] — 2026-11-12 (OpenCode 1.19.3)
 
 Проверено на реальном нетбуке: новая сессия открывается с главного экрана,

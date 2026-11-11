@@ -8,7 +8,7 @@
 SP1 x32. It is not affiliated with the OpenCode authors. The release archive
 contains a patched `node.exe`, the OpenCode bundle and our launchers.
 
-**Supported versions.** Only the latest release (`v0.2.5-x32` at the time of
+**Supported versions.** Only the latest release (`v0.2.6-x32` at the time of
 writing) is supported. Older archives are kept for history and do not receive
 fixes.
 
@@ -60,7 +60,7 @@ answered as time allows. We aim to acknowledge a report within a week.
 OpenCode не связан. В архиве релиза — пропатченный `node.exe`, сборка OpenCode
 и наши лаунчеры.
 
-**Поддерживаемые версии.** Только последний релиз (`v0.2.5-x32` на момент
+**Поддерживаемые версии.** Только последний релиз (`v0.2.6-x32` на момент
 написания); старые архивы лежат для истории и не обновляются.
 
 **Это задумано, а не уязвимость:**
