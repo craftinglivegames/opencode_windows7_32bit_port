@@ -1,0 +1,30 @@
+name: checksums
+
+# Keeps the SHA-256 table in README.md honest: a release that is attached with a
+# different archive than the one documented used to go unnoticed until a user
+# ran certutil and reported a "corrupted download".
+
+on:
+  release:
+    types: [published]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readme-vs-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compare README checksums with the latest release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python tools/check_release_checksums.py

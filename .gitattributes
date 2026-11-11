@@ -1,0 +1,14 @@
+# Normalise line endings on checkout: text files get LF in the repository,
+# Windows batch files stay CRLF so cmd.exe keeps working.
+* text=auto
+
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.wasm binary
+*.exe binary
+*.dll binary
+*.zip binary

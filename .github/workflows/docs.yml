@@ -1,0 +1,32 @@
+name: docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  links-and-syntax:
+    name: links and script syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Relative links in markdown
+        run: python tools/check_links.py .
+
+      - name: Compile Python tools
+        run: python -m py_compile tools/*.py
+
+      - name: Syntax-check Node helpers
+        run: |
+          node --check tools/accounts_panel.js
+          node --check tools/sync_free_models.js
