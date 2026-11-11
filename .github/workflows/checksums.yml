@@ -17,6 +17,7 @@ permissions:
 jobs:
   readme-vs-release:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -27,4 +28,4 @@ jobs:
       - name: Compare README checksums with the latest release
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python tools/check_release_checksums.py
+        run: python tools/check_release_checksums.py --wait 600

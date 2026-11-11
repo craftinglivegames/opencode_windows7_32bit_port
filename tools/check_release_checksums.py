@@ -5,7 +5,11 @@ Stale checksums are the easiest way to scare a new user away ("certutil says the
 file is corrupted"), so CI runs this on every release and once a week.
 
 Usage:
-    python tools/check_release_checksums.py [repo-slug]
+    python tools/check_release_checksums.py [repo-slug] [--wait SECONDS]
+
+--wait makes sense in CI: the `release: published` event fires before the asset
+upload finishes, so the digest is briefly empty. With --wait the script polls
+until the digest appears (or the timeout expires).
 
 Exit code 1 means README.md and the latest release asset disagree (or the asset
 has no digest yet). Read-only, no token required for public repositories; in
@@ -16,6 +20,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.request
 
 DEFAULT_SLUG = "craftinglivegames/opencode_windows7_32bit_port"
@@ -44,10 +49,40 @@ def readme_values(path="README.md"):
     return int(size or 0), sha
 
 
-def main():
-    slug = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("GITHUB_REPOSITORY", DEFAULT_SLUG)
+def fetch_asset(slug):
     rel = api("https://api.github.com/repos/%s/releases/latest" % slug)
     asset = next((a for a in rel.get("assets", []) if a.get("name") == ASSET), None)
+    return rel, asset
+
+
+def main():
+    argv = sys.argv[1:]
+    slug = None
+    wait = 0
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--wait" and i + 1 < len(argv):
+            wait = int(argv[i + 1])
+            i += 2
+            continue
+        if a.startswith("--wait="):
+            wait = int(a.split("=", 1)[1])
+        elif not a.startswith("--") and slug is None:
+            slug = a
+        i += 1
+    slug = slug or os.environ.get("GITHUB_REPOSITORY", DEFAULT_SLUG)
+
+    deadline = time.time() + wait
+    while True:
+        rel, asset = fetch_asset(slug)
+        if asset is not None and asset.get("digest"):
+            break
+        if time.time() >= deadline:
+            break
+        print("waiting for %s digest (release %s)..." % (ASSET, rel.get("tag_name")))
+        time.sleep(20)
+
     if asset is None:
         print("asset %s is not attached to release %s" % (ASSET, rel.get("tag_name")))
         return 1
