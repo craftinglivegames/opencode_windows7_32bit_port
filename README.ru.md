@@ -64,7 +64,7 @@
 
 | Файл | Размер | SHA-256 |
 |---|---|---|
-| `OpenCode-Win7-x32-portable.zip` | 54 492 838 | `af084e6e98d25aa4cb2ae706befe778577671010d2334a6de93152fe4ab95aa9` |
+| `OpenCode-Win7-x32-portable.zip` | 54 492 838 | `a1d9cfcbc74277c1bb1ac805a7df1eda099b0f3ca159a8288378b268859d761f` |
 | `OpenCode.exe` | 159 232 | `bd580bc0f2a319e839e0e5d3e8f83dc6b18d13606d057dcfeaba66d3b406d1e2` |
 
 Проверка: `certutil -hashfile OpenCode-Win7-x32-portable.zip SHA256`.
