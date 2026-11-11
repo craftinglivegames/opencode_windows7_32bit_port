@@ -60,11 +60,11 @@
 
 ### Контрольные суммы
 
-Для архива из последнего релиза (`v0.2.3-x32`):
+Для архива из последнего релиза (`v0.2.4-x32`):
 
 | Файл | Размер | SHA-256 |
 |---|---|---|
-| `OpenCode-Win7-x32-portable.zip` | 54 556 217 | `b5665366e7113598ed3b08caecfdda1e8d99df03d234de64745b66a283ede85f` |
+| `OpenCode-Win7-x32-portable.zip` | 54 492 595 | `e97bf74e5755767dbfbce19ae0ba40a4cb3d0d2007f5dfb53fc11733d1833824` |
 | `OpenCode.exe` | 159 232 | `bd580bc0f2a319e839e0e5d3e8f83dc6b18d13606d057dcfeaba66d3b406d1e2` |
 
 Проверка: `certutil -hashfile OpenCode-Win7-x32-portable.zip SHA256`.
