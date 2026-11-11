@@ -256,6 +256,7 @@ web UI in Supermium) is legacy and no longer needed; the sources are still there
 src/      C++: x32 launcher, ANSI proxy, shims, self-extract payload
 tools/    build scripts (MSVC/Python), PE patcher, packaging, release patches
 docs/     port description, spike report, build guide
+patches/  port changes on top of upstream opencode v1.19.3 (git-apply patch)
 third_party/  upstream license texts (opencode, Node.js)
 .github/  issue templates
 screenshots/  screenshots from the real netbook

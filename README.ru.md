@@ -304,6 +304,7 @@ web-UI в Supermium. Мост автозапуска — [`dist/OCShellBridge.cm
 src/      C++: лаунчер x32, ANSI-прокси, шимы, self-extract payload
 tools/    сборка (MSVC/Python), патч PE, упаковка, release-патчи
 docs/     описание порта, отчёт спайка, сборка
+patches/  изменения порта поверх upstream opencode v1.19.3 (патч для git apply)
 third_party/  тексты лицензий upstream (opencode, Node.js)
 .github/  шаблоны issue
 screenshots/  скриншоты с реального нетбука

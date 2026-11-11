@@ -56,10 +56,24 @@ node.exe -e "require('node:sqlite')"   → без ошибок
 
 ## 2. Бандл opencode (Bun → Node)
 
-В клоне opencode применены патчи порта (подробно —
-[spike-win7-x86/REPORT.md](spike-win7-x86/REPORT.md)): замена `Bun.*` на
-Node-аналоги, `bun:sqlite` → `node:sqlite`, `@lydell/node-pty` → `node-pty`,
-удаление `with { type: "file" }` и т.п.
+В клоне opencode применены патчи порта — они лежат в
+[`patches/0001-win7-x32-source.patch`](../patches/0001-win7-x32-source.patch)
+(база — тег `v1.19.3`, коммит `e3c4eb2`; список изменений — в
+[`patches/README.md`](../patches/README.md)). Подробный разбор, почему это
+понадобилось, — в [spike-win7-x86/REPORT.md](spike-win7-x86/REPORT.md).
+
+```bat
+git clone https://github.com/anomalyco/opencode.git spike\opencode-src
+cd spike\opencode-src
+git checkout e3c4eb2
+git apply ..\..\patches\0001-win7-x32-source.patch
+```
+
+Зависимости под Node: `node-pty` ставится вместо `@lydell/node-pty` и
+собирается под ia32 с winpty; вместо `bun:sqlite` используется встроенный
+`node:sqlite` из Node 22. `bun.lock`/`package.json` из upstream при этом не
+патчатся — состояние зависимостей подбирается руками, см.
+[`patches/README.md`](../patches/README.md).
 
 Сборка:
 

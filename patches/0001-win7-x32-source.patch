@@ -1,0 +1,611 @@
+diff --git a/packages/core/src/pty/pty.node.ts b/packages/core/src/pty/pty.node.ts
+index 54691d1..6b2d035 100644
+--- a/packages/core/src/pty/pty.node.ts
++++ b/packages/core/src/pty/pty.node.ts
+@@ -1,13 +1,13 @@
+-import * as pty from "@lydell/node-pty"
++import * as pty from "node-pty"
+ import type { Opts, Proc } from "./pty"
+ 
+ export type { Disp, Exit, Opts, Proc } from "./pty"
+ 
+ export function spawn(file: string, args: string[], opts: Opts): Proc {
+-  const proc = pty.spawn(file, args, {
+-    ...opts,
+-    ...(process.platform === "win32" ? { useConptyDll: true } : {}),
+-  })
++  // Upstream node-pty picks ConPTY on Windows build >= 18309 and falls back
++  // to winpty on Win7/8 automatically; do not force ConPTY on this port
++  // (the ia32 Win7 build has no ConPTY DLL).
++  const proc = pty.spawn(file, args, opts as Parameters<typeof pty.spawn>[2])
+   return {
+     pid: proc.pid,
+     onData(listener) {
+diff --git a/packages/core/src/skill/discovery.ts b/packages/core/src/skill/discovery.ts
+index a192ba1..c688876 100644
+--- a/packages/core/src/skill/discovery.ts
++++ b/packages/core/src/skill/discovery.ts
+@@ -1,6 +1,7 @@
+ export * as SkillDiscovery from "./discovery"
+ 
+ import path from "path"
++import { createHash } from "node:crypto"
+ import { Context, Effect, Layer, Schedule, Schema } from "effect"
+ import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
+ import { FSUtil } from "../fs-util"
+@@ -110,7 +111,9 @@ const layer = Layer.effect(
+         )
+         if (!data) return []
+ 
+-        const sourceRoot = path.resolve(global.cache, "skills", Bun.hash(base).toString(16))
++        // Bun.hash (wyhash) is unavailable on Node; any stable digest works for
++        // the cache dir name.
++        const sourceRoot = path.resolve(global.cache, "skills", createHash("sha1").update(base).digest("hex").slice(0, 12))
+         return yield* Effect.forEach(
+           data.skills.flatMap((skill) => {
+             if (!isSafeSegment(skill.name)) {
+diff --git a/packages/opencode/src/cli/cmd/bun-compat.ts b/packages/opencode/src/cli/cmd/bun-compat.ts
+new file mode 100644
+index 0000000..6176170
+--- /dev/null
++++ b/packages/opencode/src/cli/cmd/bun-compat.ts
+@@ -0,0 +1,49 @@
++// Bun API compatibility shim for the Node port (Win7 x86).
++// Replaces the Bun.* runtime calls that survived the build: Bun.stringWidth,
++// Bun.stdin.text(). Keep the semantics close to Bun's so the callers don't
++// need to know which runtime they are on.
++
++const ansi = new RegExp("\\x1b\\[[0-9;]*[A-Za-z]|\\x1b\\][^\x07]*\x07|\\x1b\\(B", "g")
++
++// Terminal display width of a string: ANSI escapes are zero-width, wide
++// (East Asian) code points count as 2, combining marks as 0. Close enough
++// to Bun.stringWidth for prompt rendering on the run/tui CLI paths.
++export function stringWidth(text: string): number {
++  let width = 0
++  for (const ch of text.replace(ansi, "")) {
++    const code = ch.codePointAt(0)!
++    if (code === 0) continue
++    if (code < 32 || (code >= 0x7f && code < 0xa0)) continue
++    if (code >= 0x300 && code <= 0x36f) continue
++    if (
++      (code >= 0x1100 && code <= 0x115f) ||
++      code === 0x2329 ||
++      code === 0x232a ||
++      (code >= 0x2e80 && code <= 0xa4cf && code !== 0x303f) ||
++      (code >= 0xac00 && code <= 0xd7a3) ||
++      (code >= 0xf900 && code <= 0xfaff) ||
++      (code >= 0xfe30 && code <= 0xfe6f) ||
++      (code >= 0xff00 && code <= 0xff60) ||
++      (code >= 0xffe0 && code <= 0xffe6) ||
++      (code >= 0x1f300 && code <= 0x1f64f) ||
++      (code >= 0x1f900 && code <= 0x1f9ff) ||
++      (code >= 0x20000 && code <= 0x3fffd)
++    ) {
++      width += 2
++      continue
++    }
++    width += 1
++  }
++  return width
++}
++
++// Replacement for `await Bun.stdin.text()`: drain piped stdin as utf8.
++// Resolves to "" when stdin is a TTY or already closed.
++export async function readStdinText(): Promise<string> {
++  if (process.stdin.isTTY) return ""
++  const chunks: Buffer[] = []
++  for await (const chunk of process.stdin) {
++    chunks.push(chunk as Buffer)
++  }
++  return Buffer.concat(chunks).toString("utf8")
++}
+diff --git a/packages/opencode/src/cli/cmd/run.ts b/packages/opencode/src/cli/cmd/run.ts
+index 944aec1..5241c24 100644
+--- a/packages/opencode/src/cli/cmd/run.ts
++++ b/packages/opencode/src/cli/cmd/run.ts
+@@ -25,6 +25,7 @@ import { Filesystem } from "@/util/filesystem"
+ import { createOpencodeClient, type OpencodeClient, type ToolPart } from "@opencode-ai/sdk/v2"
+ import { FormatError, FormatUnknownError } from "../error"
+ import { INTERACTIVE_INPUT_ERROR, resolveInteractiveStdin } from "./run/runtime.stdin"
++import { readStdinText } from "./bun-compat"
+ 
+ type ModelInput = Parameters<OpencodeClient["session"]["prompt"]>[0]["model"]
+ 
+@@ -414,7 +415,7 @@ export const RunCommand = effectCmd({
+         }
+       }
+ 
+-      const piped = process.stdin.isTTY ? undefined : await Bun.stdin.text()
++      const piped = process.stdin.isTTY ? undefined : await readStdinText()
+       message = resolveRunInput(message, piped) ?? ""
+       const initialInput = resolveRunInput(rawMessage, piped)
+ 
+diff --git a/packages/opencode/src/cli/cmd/run/footer.menu.tsx b/packages/opencode/src/cli/cmd/run/footer.menu.tsx
+index 7e820cc..bef1db8 100644
+--- a/packages/opencode/src/cli/cmd/run/footer.menu.tsx
++++ b/packages/opencode/src/cli/cmd/run/footer.menu.tsx
+@@ -3,6 +3,7 @@ import { TextAttributes, type ColorInput } from "@opentui/core"
+ import { useTerminalDimensions } from "@opentui/solid"
+ import { createEffect, createMemo, createSignal, type Accessor } from "solid-js"
+ import { transparent, type RunFooterTheme } from "./theme"
++import { stringWidth } from "../bun-compat"
+ import * as Locale from "@/util/locale"
+ 
+ export const FOOTER_MENU_ROWS = 8
+@@ -196,7 +197,7 @@ export function RunFooterMenu(props: {
+       ...props
+         .items()
+         .filter((item) => item.description)
+-        .map((item) => Bun.stringWidth(item.display)),
++        .map((item) => stringWidth(item.display)),
+     )
+     return width === 0 ? 0 : width + 2
+   })
+@@ -205,14 +206,14 @@ export function RunFooterMenu(props: {
+       return ""
+     }
+ 
+-    return " ".repeat(Math.max(1, descriptionColumn() - Bun.stringWidth(item.display)))
++    return " ".repeat(Math.max(1, descriptionColumn() - stringWidth(item.display)))
+   }
+   const descriptionText = (item: RunFooterMenuItem) => {
+     if (!item.description) {
+       return
+     }
+ 
+-    const footerWidth = item.footer ? Bun.stringWidth(item.footer) + 1 : 0
++    const footerWidth = item.footer ? stringWidth(item.footer) + 1 : 0
+     const available =
+       term().width -
+       (border() ? 1 : 0) -
+diff --git a/packages/opencode/src/cli/cmd/run/footer.prompt.tsx b/packages/opencode/src/cli/cmd/run/footer.prompt.tsx
+index 0280982..d8cb3c1 100644
+--- a/packages/opencode/src/cli/cmd/run/footer.prompt.tsx
++++ b/packages/opencode/src/cli/cmd/run/footer.prompt.tsx
+@@ -6,6 +6,7 @@
+ // composer while the footer view renders any active menus below it.
+ /** @jsxImportSource @opentui/solid */
+ import { pathToFileURL } from "bun"
++import { stringWidth } from "../bun-compat"
+ import { StyledText, fg, type ColorInput, type KeyEvent, type TextareaRenderable } from "@opentui/core"
+ import { useRenderer } from "@opentui/solid"
+ import { normalizePromptContent } from "@opencode-ai/tui/editor"
+@@ -591,7 +592,7 @@ export function createPromptState(input: PromptInput): PromptState {
+     })
+   }
+ 
+-  const restore = (value: RunPrompt, cursor = Bun.stringWidth(value.text)) => {
++  const restore = (value: RunPrompt, cursor = stringWidth(value.text)) => {
+     draft = clonePrompt(value)
+     setShell(value.mode === "shell")
+     if (!area || area.isDestroyed) {
+@@ -601,7 +602,7 @@ export function createPromptState(input: PromptInput): PromptState {
+     hide()
+     area.setText(value.text)
+     restoreParts(value.parts)
+-    area.cursorOffset = Math.min(cursor, Bun.stringWidth(area.plainText))
++    area.cursorOffset = Math.min(cursor, stringWidth(area.plainText))
+     scheduleRows()
+     area.focus()
+   }
+@@ -632,7 +633,7 @@ export function createPromptState(input: PromptInput): PromptState {
+     area.setText(text)
+     clearParts()
+     draft = shell() ? { text: area.plainText, parts: [], mode: "shell" } : { text: area.plainText, parts: [] }
+-    area.cursorOffset = Math.min(Bun.stringWidth(text), Bun.stringWidth(area.plainText))
++    area.cursorOffset = Math.min(stringWidth(text), stringWidth(area.plainText))
+     scheduleRows()
+     area.focus()
+   }
+@@ -766,7 +767,7 @@ export function createPromptState(input: PromptInput): PromptState {
+     if (move(dir, event)) return
+     if (!area || area.isDestroyed) return false
+ 
+-    const endOffset = Bun.stringWidth(area.plainText)
++    const endOffset = stringWidth(area.plainText)
+     if (dir === -1 && area.visualCursor.visualRow === 0) {
+       area.cursorOffset = 0
+     }
+@@ -871,13 +872,13 @@ export function createPromptState(input: PromptInput): PromptState {
+         shell() || !head
+           ? cursor
+           : local
+-            ? Bun.stringWidth(area.plainText)
+-            : Bun.stringWidth(area.plainText.slice(0, head.end))
++            ? stringWidth(area.plainText)
++            : stringWidth(area.plainText.slice(0, head.end))
+       const end = area.logicalCursor
+ 
+       area.deleteRange(start.row, start.col, end.row, end.col)
+       area.insertText(text)
+-      area.cursorOffset = Bun.stringWidth(text)
++      area.cursorOffset = stringWidth(text)
+       hide()
+       syncDraft()
+       if (!shell()) {
+@@ -902,7 +903,7 @@ export function createPromptState(input: PromptInput): PromptState {
+ 
+     const text = "@" + next.value
+     const startOffset = at()
+-    const endOffset = startOffset + Bun.stringWidth(text)
++    const endOffset = startOffset + stringWidth(text)
+     const part = structuredClone(next.part)
+     if (part.type === "agent") {
+       part.source = {
+diff --git a/packages/opencode/src/cli/cmd/run/prompt.shared.ts b/packages/opencode/src/cli/cmd/run/prompt.shared.ts
+index 63c33aa..cd6ac24 100644
+--- a/packages/opencode/src/cli/cmd/run/prompt.shared.ts
++++ b/packages/opencode/src/cli/cmd/run/prompt.shared.ts
+@@ -8,6 +8,7 @@
+ // the current draft is saved and history begins. Arrowing past the end
+ // restores the draft.
+ export { displayCharAt, displaySlice, mentionTriggerIndex } from "../prompt-display"
++import { stringWidth } from "../bun-compat"
+ import type { RunPrompt } from "./types"
+ 
+ const HISTORY_LIMIT = 200
+@@ -102,7 +103,7 @@ export function movePromptHistory(state: PromptHistoryState, dir: -1 | 1, text:
+     return { state, apply: false }
+   }
+ 
+-  if (dir === 1 && cursor !== Bun.stringWidth(text)) {
++  if (dir === 1 && cursor !== stringWidth(text)) {
+     return { state, apply: false }
+   }
+ 
+@@ -136,7 +137,7 @@ export function movePromptHistory(state: PromptHistoryState, dir: -1 | 1, text:
+         index: null,
+       },
+       text: state.draft,
+-      cursor: Bun.stringWidth(state.draft),
++      cursor: stringWidth(state.draft),
+       apply: true,
+     }
+   }
+@@ -147,7 +148,7 @@ export function movePromptHistory(state: PromptHistoryState, dir: -1 | 1, text:
+       index: idx,
+     },
+     text: state.items[idx].text,
+-    cursor: dir === -1 ? 0 : Bun.stringWidth(state.items[idx].text),
++    cursor: dir === -1 ? 0 : stringWidth(state.items[idx].text),
+     apply: true,
+   }
+ }
+diff --git a/packages/opencode/src/cli/cmd/run/session.shared.ts b/packages/opencode/src/cli/cmd/run/session.shared.ts
+index 7dbce26..8db14f1 100644
+--- a/packages/opencode/src/cli/cmd/run/session.shared.ts
++++ b/packages/opencode/src/cli/cmd/run/session.shared.ts
+@@ -4,6 +4,7 @@
+ // the prompt history ring. Also finds the most recently used variant for
+ // the current model so the footer can pre-select it.
+ import { promptCopy, promptSame } from "./prompt.shared"
++import { stringWidth } from "../bun-compat"
+ import type { RunInput, RunPrompt } from "./types"
+ 
+ const LIMIT = 200
+@@ -68,7 +69,7 @@ export function messagePrompt(msg: SessionMessages[number]): RunPrompt {
+     })
+     .map((part) => part.text)
+     .join("")
+-  let cursor = Bun.stringWidth(text)
++  let cursor = stringWidth(text)
+   const used: Array<{ start: number; end: number }> = []
+ 
+   const take = (value: string): { start: number; end: number; value: string } | undefined => {
+@@ -79,8 +80,8 @@ export function messagePrompt(msg: SessionMessages[number]): RunPrompt {
+         return undefined
+       }
+ 
+-      const start = Bun.stringWidth(text.slice(0, idx))
+-      const end = start + Bun.stringWidth(value)
++      const start = stringWidth(text.slice(0, idx))
++      const end = start + stringWidth(value)
+       if (!used.some((item) => item.start < end && start < item.end)) {
+         return { start, end, value }
+       }
+@@ -91,9 +92,9 @@ export function messagePrompt(msg: SessionMessages[number]): RunPrompt {
+ 
+   const add = (value: string) => {
+     const gap = text ? " " : ""
+-    const start = cursor + Bun.stringWidth(gap)
++    const start = cursor + stringWidth(gap)
+     text += gap + value
+-    const end = start + Bun.stringWidth(value)
++    const end = start + stringWidth(value)
+     cursor = end
+     return { start, end, value }
+   }
+diff --git a/packages/opencode/src/cli/cmd/tui.ts b/packages/opencode/src/cli/cmd/tui.ts
+index 3a837ba..1cfcf86 100644
+--- a/packages/opencode/src/cli/cmd/tui.ts
++++ b/packages/opencode/src/cli/cmd/tui.ts
+@@ -16,6 +16,7 @@ import { writeHeapSnapshot } from "v8"
+ import { ServerAuth } from "@/server/auth"
+ import { validateSession } from "../tui/validate-session"
+ import { win32InstallCtrlCGuard } from "@opencode-ai/tui/terminal-win32"
++import { readStdinText } from "./bun-compat"
+ 
+ declare global {
+   const OPENCODE_WORKER_PATH: string
+@@ -96,7 +97,7 @@ async function target() {
+ }
+ 
+ async function input(value?: string) {
+-  const piped = process.stdin.isTTY ? undefined : await Bun.stdin.text()
++  const piped = process.stdin.isTTY ? undefined : await readStdinText()
+   if (!value) return piped
+   if (!piped) return value
+   return piped + "\n" + value
+diff --git a/packages/opencode/src/server/shared/ui.ts b/packages/opencode/src/server/shared/ui.ts
+index d3f2c45..0cf1fac 100644
+--- a/packages/opencode/src/server/shared/ui.ts
++++ b/packages/opencode/src/server/shared/ui.ts
+@@ -2,8 +2,13 @@ import { FSUtil } from "@opencode-ai/core/fs-util"
+ import { Effect, Stream } from "effect"
+ import { HttpBody, HttpClient, HttpClientRequest, HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
+ import { createHash } from "node:crypto"
++import { fileURLToPath } from "node:url"
+ import { ProxyUtil } from "../proxy-util"
+ 
++// Web UI files ship next to the bundle (webui/...); resolve map values
++// against the bundle's own location so the layout is relocatable.
++const resolveUIFile = (file: string) => fileURLToPath(new URL(file, import.meta.url))
++
+ let embeddedUIPromise: Promise<Record<string, string> | null> | undefined
+ 
+ export const UI_UPSTREAM = new URL("https://app.opencode.ai")
+@@ -44,8 +49,11 @@ export function upstreamURL(path: string) {
+ export function embeddedUI(disableEmbeddedWebUi: boolean) {
+   if (disableEmbeddedWebUi) return Promise.resolve(null)
+   return (embeddedUIPromise ??=
+-    // @ts-expect-error - generated file at build time
+-    import("opencode-web-ui.gen.ts").then((module) => module.default as Record<string, string>).catch(() => null))
++    // Node port: the generated map lives next to this file and bundles into
++    // the server; it maps web UI paths to on-disk files read at request time.
++    import("./opencode-web-ui.gen.ts")
++      .then((module) => module.default as Record<string, string>)
++      .catch(() => null))
+ }
+ 
+ function notFound() {
+@@ -69,7 +77,7 @@ export function serveEmbeddedUIEffect(
+   const file = embeddedWebUI[requestPath.replace(/^\//, "")] ?? embeddedWebUI["index.html"] ?? null
+   if (!file) return Effect.succeed(notFound())
+ 
+-  return fs.readFile(file).pipe(
++  return fs.readFile(resolveUIFile(file)).pipe(
+     Effect.map((body) => embeddedUIResponse(file, body)),
+     Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(notFound())),
+   )
+diff --git a/packages/opencode/src/tool/shell.ts b/packages/opencode/src/tool/shell.ts
+index 1e4423e..2e42f78 100644
+--- a/packages/opencode/src/tool/shell.ts
++++ b/packages/opencode/src/tool/shell.ts
+@@ -310,21 +310,15 @@ function cmd(shell: string, command: string, cwd: string, env: NodeJS.ProcessEnv
+ }
+ const parser = lazy(async () => {
+   const { Parser } = await import("web-tree-sitter")
+-  const { default: treeWasm } = await import("web-tree-sitter/tree-sitter.wasm" as string, {
+-    with: { type: "wasm" },
+-  })
++  const { default: treeWasm } = await import("web-tree-sitter/tree-sitter.wasm" as string)
+   const treePath = resolveWasm(treeWasm)
+   await Parser.init({
+     locateFile() {
+       return treePath
+     },
+   })
+-  const { default: bashWasm } = await import("tree-sitter-bash/tree-sitter-bash.wasm" as string, {
+-    with: { type: "wasm" },
+-  })
+-  const { default: psWasm } = await import("tree-sitter-powershell/tree-sitter-powershell.wasm" as string, {
+-    with: { type: "wasm" },
+-  })
++  const { default: bashWasm } = await import("tree-sitter-bash/tree-sitter-bash.wasm" as string)
++  const { default: psWasm } = await import("tree-sitter-powershell/tree-sitter-powershell.wasm" as string)
+   const bashPath = resolveWasm(bashWasm)
+   const psPath = resolveWasm(psWasm)
+   const [bashLanguage, psLanguage] = await Promise.all([Language.load(bashPath), Language.load(psPath)])
+diff --git a/packages/tui/src/attention.ts b/packages/tui/src/attention.ts
+index b309edc..ee57f8c 100644
+--- a/packages/tui/src/attention.ts
++++ b/packages/tui/src/attention.ts
+@@ -14,12 +14,12 @@ import { AttentionSoundName, type TuiConfig } from "./config"
+ import { Schema } from "effect"
+ import stripAnsi from "strip-ansi"
+ import * as TuiAudio from "./audio"
+-import defaultSoundPath from "@opencode-ai/ui/audio/bip-bop-01.mp3" with { type: "file" }
+-import questionSoundPath from "@opencode-ai/ui/audio/bip-bop-03.mp3" with { type: "file" }
+-import permissionSoundPath from "@opencode-ai/ui/audio/staplebops-06.mp3" with { type: "file" }
+-import errorSoundPath from "@opencode-ai/ui/audio/nope-03.mp3" with { type: "file" }
+-import doneSoundPath from "@opencode-ai/ui/audio/bip-bop-01.mp3" with { type: "file" }
+-import subagentDoneSoundPath from "@opencode-ai/ui/audio/yup-01.mp3" with { type: "file" }
++import defaultSoundPath from "@opencode-ai/ui/audio/bip-bop-01.mp3"
++import questionSoundPath from "@opencode-ai/ui/audio/bip-bop-03.mp3"
++import permissionSoundPath from "@opencode-ai/ui/audio/staplebops-06.mp3"
++import errorSoundPath from "@opencode-ai/ui/audio/nope-03.mp3"
++import doneSoundPath from "@opencode-ai/ui/audio/bip-bop-01.mp3"
++import subagentDoneSoundPath from "@opencode-ai/ui/audio/yup-01.mp3"
+ 
+ type FocusState = "unknown" | "focused" | "blurred"
+ 
+diff --git a/packages/tui/src/component/prompt/autocomplete.tsx b/packages/tui/src/component/prompt/autocomplete.tsx
+index 099fa9d..cab01a8 100644
+--- a/packages/tui/src/component/prompt/autocomplete.tsx
++++ b/packages/tui/src/component/prompt/autocomplete.tsx
+@@ -1,5 +1,6 @@
+ import type { BoxRenderable, TextareaRenderable, ScrollBoxRenderable } from "@opentui/core"
+ import { pathToFileURL } from "bun"
++import { stringWidth } from "../../util/string-width"
+ import fuzzysort from "fuzzysort"
+ import path from "path"
+ import { firstBy } from "remeda"
+@@ -187,7 +188,7 @@ export function Autocomplete(props: {
+ 
+     const virtualText = "@" + text
+     const extmarkStart = store.index
+-    const extmarkEnd = extmarkStart + Bun.stringWidth(virtualText)
++    const extmarkEnd = extmarkStart + stringWidth(virtualText)
+ 
+     const styleId = part.type === "file" ? props.fileStyleId : part.type === "agent" ? props.agentStyleId : undefined
+ 
+@@ -458,7 +459,7 @@ export function Autocomplete(props: {
+           const cursor = props.input().logicalCursor
+           props.input().deleteRange(0, 0, cursor.row, cursor.col)
+           props.input().insertText(newText)
+-          props.input().cursorOffset = Bun.stringWidth(newText)
++          props.input().cursorOffset = stringWidth(newText)
+         },
+       })
+     }
+diff --git a/packages/tui/src/component/prompt/index.tsx b/packages/tui/src/component/prompt/index.tsx
+index c48c751..7926930 100644
+--- a/packages/tui/src/component/prompt/index.tsx
++++ b/packages/tui/src/component/prompt/index.tsx
+@@ -11,6 +11,7 @@ import {
+ import type { CommandContext } from "@opentui/keymap"
+ import { createEffect, createMemo, onMount, createSignal, onCleanup, on, Show, Switch, Match } from "solid-js"
+ import { registerOpencodeSpinner } from "../register-spinner"
++import { stringWidth } from "../../util/string-width"
+ import path from "path"
+ import { fileURLToPath } from "url"
+ import { useLocal } from "../../context/local"
+@@ -509,7 +510,7 @@ export function Prompt(props: PromptProps) {
+             parts: updatedNonTextParts,
+           })
+           restoreExtmarksFromParts(updatedNonTextParts)
+-          input.cursorOffset = Bun.stringWidth(normalized)
++          input.cursorOffset = stringWidth(normalized)
+         },
+       },
+       {
+diff --git a/packages/tui/src/editor-zed.ts b/packages/tui/src/editor-zed.ts
+index 8ef53ab..3fca958 100644
+--- a/packages/tui/src/editor-zed.ts
++++ b/packages/tui/src/editor-zed.ts
+@@ -1,4 +1,4 @@
+-import { Database } from "bun:sqlite"
++import { DatabaseSync as Database } from "node:sqlite"
+ import { statSync } from "node:fs"
+ import { readFile as readFileAsync } from "node:fs/promises"
+ import os from "node:os"
+diff --git a/packages/tui/src/ffi-shim.ts b/packages/tui/src/ffi-shim.ts
+new file mode 100644
+index 0000000..ee2642b
+--- /dev/null
++++ b/packages/tui/src/ffi-shim.ts
+@@ -0,0 +1,9 @@
++// Spike shim: bun:ffi is not available on Node. This module is only used by
++// the TUI (win32 console mode via FFI); the port will replace it with koffi
++// (@koromix/koffi-win32-ia32) or a tiny N-API addon.
++export function dlopen(): never {
++  throw new Error("bun:ffi unavailable on Node (TUI-only path)")
++}
++export function ptr(): never {
++  throw new Error("bun:ffi unavailable on Node (TUI-only path)")
++}
+diff --git a/packages/tui/src/prompt/display.ts b/packages/tui/src/prompt/display.ts
+index 4c22942..8ba6bfe 100644
+--- a/packages/tui/src/prompt/display.ts
++++ b/packages/tui/src/prompt/display.ts
+@@ -1,10 +1,12 @@
++import { stringWidth } from "../util/string-width"
++
+ const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" })
+ 
+ export function promptOffsetWidth(value: string) {
+   let width = 0
+   for (const part of graphemes.segment(value)) {
+-    // Textarea offsets count newlines as one position; Bun.stringWidth counts them as zero.
+-    width += part.segment === "\n" ? 1 : Bun.stringWidth(part.segment)
++    // Textarea offsets count newlines as one position; stringWidth counts them as zero.
++    width += part.segment === "\n" ? 1 : stringWidth(part.segment)
+   }
+   return width
+ }
+diff --git a/packages/tui/src/terminal-win32.ts b/packages/tui/src/terminal-win32.ts
+index 1aaa80a..f71af15 100644
+--- a/packages/tui/src/terminal-win32.ts
++++ b/packages/tui/src/terminal-win32.ts
+@@ -1,4 +1,4 @@
+-import { dlopen, ptr } from "bun:ffi"
++import { dlopen, ptr } from "./ffi-shim"
+ import type { ReadStream } from "node:tty"
+ 
+ const STD_INPUT_HANDLE = -10
+diff --git a/packages/tui/src/util/persistence.ts b/packages/tui/src/util/persistence.ts
+index 1f7c283..e00c11c 100644
+--- a/packages/tui/src/util/persistence.ts
++++ b/packages/tui/src/util/persistence.ts
+@@ -1,17 +1,17 @@
+ import path from "path"
+-import { appendFile, mkdir, rename, rm } from "fs/promises"
++import { appendFile, mkdir, readFile, rename, rm, writeFile } from "fs/promises"
+ 
+-export function readText(filePath: string) {
+-  return Bun.file(filePath).text()
++export async function readText(filePath: string) {
++  return readFile(filePath, "utf8")
+ }
+ 
+-export function readJson<T>(filePath: string) {
+-  return Bun.file(filePath).json() as Promise<T>
++export async function readJson<T>(filePath: string) {
++  return JSON.parse(await readFile(filePath, "utf8")) as T
+ }
+ 
+ export async function writeText(filePath: string, content: string) {
+   await mkdir(path.dirname(filePath), { recursive: true })
+-  await Bun.write(filePath, content)
++  await writeFile(filePath, content, "utf8")
+ }
+ 
+ export async function appendText(filePath: string, content: string) {
+@@ -22,7 +22,7 @@ export async function appendText(filePath: string, content: string) {
+ export async function writeJsonAtomic(filePath: string, value: unknown) {
+   await mkdir(path.dirname(filePath), { recursive: true })
+   const temporary = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`
+-  await Bun.write(temporary, JSON.stringify(value)).catch(async (error) => {
++  await writeFile(temporary, JSON.stringify(value), "utf8").catch(async (error) => {
+     await rm(temporary, { force: true }).catch(() => undefined)
+     throw error
+   })
+diff --git a/packages/tui/src/util/string-width.ts b/packages/tui/src/util/string-width.ts
+new file mode 100644
+index 0000000..193a86a
+--- /dev/null
++++ b/packages/tui/src/util/string-width.ts
+@@ -0,0 +1,33 @@
++// Terminal display width of a string (Node-port replacement for
++// Bun.stringWidth): ANSI escapes are zero-width, wide (East Asian) code
++// points count as 2, combining marks and control characters as 0.
++const ansi = new RegExp("\\x1b\\[[0-9;]*[A-Za-z]|\\x1b\\][^\x07]*\x07|\\x1b\\(B", "g")
++
++export function stringWidth(text: string): number {
++  let width = 0
++  for (const ch of text.replace(ansi, "")) {
++    const code = ch.codePointAt(0)!
++    if (code === 0) continue
++    if (code < 32 || (code >= 0x7f && code < 0xa0)) continue
++    if (code >= 0x300 && code <= 0x36f) continue
++    if (
++      (code >= 0x1100 && code <= 0x115f) ||
++      code === 0x2329 ||
++      code === 0x232a ||
++      (code >= 0x2e80 && code <= 0xa4cf && code !== 0x303f) ||
++      (code >= 0xac00 && code <= 0xd7a3) ||
++      (code >= 0xf900 && code <= 0xfaff) ||
++      (code >= 0xfe30 && code <= 0xfe6f) ||
++      (code >= 0xff00 && code <= 0xff60) ||
++      (code >= 0xffe0 && code <= 0xffe6) ||
++      (code >= 0x1f300 && code <= 0x1f64f) ||
++      (code >= 0x1f900 && code <= 0x1f9ff) ||
++      (code >= 0x20000 && code <= 0x3fffd)
++    ) {
++      width += 2
++      continue
++    }
++    width += 1
++  }
++  return width
++}
