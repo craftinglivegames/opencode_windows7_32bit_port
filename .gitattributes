@@ -12,3 +12,6 @@
 *.exe binary
 *.dll binary
 *.zip binary
+
+# git patches must stay byte-identical (git apply is whitespace-sensitive)
+*.patch -text
