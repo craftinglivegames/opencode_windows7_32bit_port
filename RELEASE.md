@@ -31,15 +31,23 @@ git diff --stat
 
 | Файл | Размер | SHA-256 |
 |---|---|---|
-| `dist/OpenCode-Win7-x32-portable.zip` | 54 539 370 | `2743e0aba1e9591141533ea1ceb605dbb30ff23b76592ff964db408b796e61f5` |
+| `dist/OpenCode-Win7-x32-portable.zip` | 54 556 217 | `b5665366e7113598ed3b08caecfdda1e8d99df03d234de64745b66a283ede85f` |
+| `OpenCode.exe` внутри архива | 159 232 | `bd580bc0f2a319e839e0e5d3e8f83dc6b18d13606d057dcfeaba66d3b406d1e2` |
 
-Внутри архива `OpenCode.exe` (153 600 байт,
-SHA-256 `f5c6ee1cbf6297c416b47e0a975eb5f711bc3a45c7d5a073024349a44d035916`).
+Это суммы релиза **`v0.2.3-x32`**. Для нового релиза их надо пересчитать и
+обновить в трёх местах: `README.md`, `README.ru.md` и таблице выше —
+иначе пользователи получат «несовпадение» при проверке:
+
+```bat
+certutil -hashfile dist\OpenCode-Win7-x32-portable.zip SHA256
+```
 
 - [ ] Архив распаковывается, внутри `OpenCode.exe`, `node\`, `app\`, `README.txt`.
 - [ ] В архиве есть `LICENSE.txt`, `LICENSE-opencode.txt`, `LICENSE-nodejs.txt`,
       `THIRD_PARTY_NOTICES.txt` (требование MIT: уведомления upstream должны
       ехать вместе с бинарной поставкой).
+- [ ] В архиве нет `*.vcxproj`, `*.test.js`, `bench/` и `config.gypi`
+      (их вырезает `make_portable.py`) и нет путей вида `C:\Users\...`.
 - [ ] `OpenCode.exe --selftest` пишет `logs\launcher.log`.
 - [ ] На чистой Win7 SP1 x32 после распаковки: запуск → браузер → health 200.
 - [ ] `README.md` и `docs/PORT-native-x32.md` не противоречат друг другу.
@@ -49,14 +57,14 @@ SHA-256 `f5c6ee1cbf6297c416b47e0a975eb5f711bc3a45c7d5a073024349a44d035916`).
 ```bat
 git add -A
 git commit -m "Release: native Win7 x32 port with OpenCode.exe launcher, UI fixes and updated docs"
-git tag -a v0.2.0-x32 -m "OpenCode for Windows 7 x32 (native Node port)"
+git tag -a vX.Y.Z-x32 -m "OpenCode for Windows 7 x32 (native Node port)"
 git push origin main
-git push origin v0.2.0-x32
+git push origin vX.Y.Z-x32
 ```
 
 ## 4. GitHub Release
 
-1. Releases → Draft a new release → тег `v0.2.0-x32`.
+1. Releases → Draft a new release → тег `vX.Y.Z-x32`.
 2. Заголовок: **OpenCode 1.19.3 for Windows 7 x32 (native port)**.
 3. Приложить `dist/OpenCode-Win7-x32-portable.zip` как asset (в git архива нет;
    GitHub ограничивает 100 МБ на файл, архив проходит).
@@ -76,6 +84,9 @@ git push origin v0.2.0-x32
 ## 5. После публикации
 
 - [ ] Проверить скачивание архива без авторизации.
+- [ ] Скачать ассет и сверить SHA-256 с таблицей в README (а не только локально).
+- [ ] В шапке репозитория GitHub показывает «MIT license» (в `LICENSE` —
+      только текст MIT, всё остальное лежит в `THIRD_PARTY_NOTICES.md`).
 - [ ] Проверить, что ссылки в README (`README.md` и `README.ru.md`) ведут на
       существующие файлы и друг на друга.
 - [ ] Убедиться, что release-бейдж в README показывает версию, а не

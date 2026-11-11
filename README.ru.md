@@ -23,7 +23,7 @@
 ## Скачать и запустить (x32, рекомендуется)
 
 **Скачать:** [последний релиз](https://github.com/craftinglivegames/opencode_windows7_32bit_port/releases/latest)
-→ файл **`OpenCode-Win7-x32-portable.zip`** (~52 МБ). В git архив не хранится:
+→ файл **`OpenCode-Win7-x32-portable.zip`** (~54,5 МБ). В git архив не хранится:
 он собирается `python tools/make_portable.py` и прикладывается к релизу.
 
 ### Требования
@@ -60,10 +60,12 @@
 
 ### Контрольные суммы
 
+Для архива из последнего релиза (`v0.2.3-x32`):
+
 | Файл | Размер | SHA-256 |
 |---|---|---|
-| `OpenCode-Win7-x32-portable.zip` | 54 539 370 | `2743e0aba1e9591141533ea1ceb605dbb30ff23b76592ff964db408b796e61f5` |
-| `OpenCode.exe` | 153 600 | `f5c6ee1cbf6297c416b47e0a975eb5f711bc3a45c7d5a073024349a44d035916` |
+| `OpenCode-Win7-x32-portable.zip` | 54 556 217 | `b5665366e7113598ed3b08caecfdda1e8d99df03d234de64745b66a283ede85f` |
+| `OpenCode.exe` | 159 232 | `bd580bc0f2a319e839e0e5d3e8f83dc6b18d13606d057dcfeaba66d3b406d1e2` |
 
 Проверка: `certutil -hashfile OpenCode-Win7-x32-portable.zip SHA256`.
 
@@ -309,6 +311,9 @@ build/    результаты сборки (в git не хранятся, со�
 dist/     артефакты релиза (в git не хранятся, создают скрипты сборки)
 LICENSE   MIT для кода порта
 THIRD_PARTY_NOTICES.md  компоненты, лицензии и внесённые изменения
+SECURITY.md  как сообщить об уязвимости и что в область не входит
+CONTRIBUTING.md  правила сборки и что не коммитить
+CHANGELOG.md  история релизов
 RELEASE.md  чек-лист публикации
 README.ru.md  полная русская документация (README.md — английская версия)
 ```

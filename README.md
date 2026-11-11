@@ -23,7 +23,7 @@ Two independent tracks:
 ## Download and run (x32, recommended)
 
 **Download:** [latest release](https://github.com/craftinglivegames/opencode_windows7_32bit_port/releases/latest)
-→ file **`OpenCode-Win7-x32-portable.zip`** (~52 MB). The archive is not stored
+→ file **`OpenCode-Win7-x32-portable.zip`** (~54.5 MB). The archive is not stored
 in git: it is built by `python tools/make_portable.py` and attached to the release.
 
 ### Requirements
@@ -61,10 +61,12 @@ Headless server: `run_server.cmd`. Logs: `logs\launcher.log`, `logs\server.log`.
 
 ### Checksums
 
+For the archive attached to the latest release (`v0.2.3-x32`):
+
 | File | Size | SHA-256 |
 |---|---|---|
-| `OpenCode-Win7-x32-portable.zip` | 54 539 370 | `2743e0aba1e9591141533ea1ceb605dbb30ff23b76592ff964db408b796e61f5` |
-| `OpenCode.exe` (inside the archive) | 153 600 | `f5c6ee1cbf6297c416b47e0a975eb5f711bc3a45c7d5a073024349a44d035916` |
+| `OpenCode-Win7-x32-portable.zip` | 54 556 217 | `b5665366e7113598ed3b08caecfdda1e8d99df03d234de64745b66a283ede85f` |
+| `OpenCode.exe` (inside the archive) | 159 232 | `bd580bc0f2a319e839e0e5d3e8f83dc6b18d13606d057dcfeaba66d3b406d1e2` |
 
 Verify: `certutil -hashfile OpenCode-Win7-x32-portable.zip SHA256`.
 
@@ -261,6 +263,9 @@ build/    build outputs (ignored, produced by tools\build_*.cmd)
 dist/     release artefacts (ignored, produced by the build scripts)
 LICENSE   MIT for the port code
 THIRD_PARTY_NOTICES.md  components, licenses and changes made
+SECURITY.md  how to report a vulnerability, what is out of scope
+CONTRIBUTING.md  build rules and what not to commit
+CHANGELOG.md  release history
 RELEASE.md  release publishing checklist
 ```
 
