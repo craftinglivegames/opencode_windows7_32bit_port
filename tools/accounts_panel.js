@@ -722,9 +722,34 @@ function lastLimitInfo() {
   return null;
 }
 
+// Only the panel's own page may talk to the panel. Requests from another
+// origin (an open browser tab on evil.example that POSTs to 127.0.0.1:4099)
+// are rejected, so nobody can add, remove or switch accounts behind the
+// user's back; the Host check also stops DNS-rebinding tricks.
+const PANEL_HOSTS = new Set(["127.0.0.1:" + PANEL_PORT, "localhost:" + PANEL_PORT]);
+
+function isPanelRequest(req) {
+  if (!PANEL_HOSTS.has(String(req.headers.host || "").toLowerCase())) return false;
+  const origin = req.headers.origin;
+  if (origin) {
+    try {
+      if (!PANEL_HOSTS.has(new URL(String(origin)).host.toLowerCase())) return false;
+    } catch (err) {
+      return false;
+    }
+  }
+  if (String(req.headers["sec-fetch-site"] || "").toLowerCase() === "cross-site") return false;
+  return true;
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://127.0.0.1");
   const p = url.pathname;
+
+  if (!isPanelRequest(req)) {
+    log("rejected request from host=" + req.headers.host + " origin=" + (req.headers.origin || "-"));
+    return send(res, 403, { ok: false, error: "forbidden" });
+  }
 
   try {
     if (p === "/" || p === "/index.html") {
