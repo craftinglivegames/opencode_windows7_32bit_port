@@ -119,8 +119,11 @@ python tools\make_portable.py
 Скрипт собирает `spike\bundle_out\portable_x86`, кладёт `OpenCode.exe`,
 `OpenCode.cmd`, `accounts.cmd`, `run_server.cmd`, README, лицензии,
 `sync_free_models.*` и `accounts_panel.js`, применяет release-патчи
-(`tools\patch_release.py`), вычищает локальные пути сборочной машины из
-`node-pty` (`config.gypi`, `*.vcxproj`, PDB-пути в `.node`/`.dll`) и упаковывает
+(`tools\patch_release.py`), вычищает из `app\node_modules` сборочный мусор
+(`*.vcxproj`, `*.sln`, `config.gypi`, `build\deps`, тесты и бенчмарки;
+`build\Release` с `.node`/`winpty` остаётся), затирает пути вида
+`C:\Users\<имя>` в оставшихся файлах — имя заменяется на `xxxx` той же длины,
+поэтому PDB-структуры в `.node`/`.dll` не ломаются, — и упаковывает
 `dist\OpenCode-Win7-x32-portable.zip`.
 
 Архив в git не коммитится (см. `.gitignore`) — это артефакт релиза.

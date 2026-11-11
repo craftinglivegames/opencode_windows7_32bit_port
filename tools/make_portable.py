@@ -94,24 +94,62 @@ for store, arc in [
         continue
     copy_tree(src, os.path.join(PKG, "app", "node_modules", arc))
 
+# 2a. drop build-time leftovers from the bundled node_modules: MSVC project
+# files, node-gyp configs, tests and benchmarks. They are useless at runtime,
+# they bloat the archive and they carry the absolute paths of the machine that
+# produced the prebuilt packages (e.g. C:\Users\build\...).
+STRIP_SUFFIX = (
+    ".vcxproj", ".vcxproj.filters", ".vcxproj.user", ".sln",
+    ".test.js", ".test.ts", ".spec.js", ".spec.ts", ".map",
+)
+STRIP_FILES = ("config.gypi", "binding.gyp", ".npmignore", ".gitignore")
+
+
+def strip_dev_files(root):
+    removed = 0
+    for r, dirs, files in os.walk(root, topdown=False):
+        for d in list(dirs):
+            rel = os.path.relpath(os.path.join(r, d), root).replace(os.sep, "/")
+            if d in ("bench", "obj", "docs", "test", "tests", "__tests__") or rel.endswith("node-pty/build/deps"):
+                shutil.rmtree(os.path.join(r, d), ignore_errors=True)
+                removed += 1
+        for f in files:
+            if f.endswith(STRIP_SUFFIX) or f in STRIP_FILES:
+                try:
+                    os.remove(os.path.join(r, f))
+                    removed += 1
+                except OSError:
+                    pass
+    return removed
+
+
+_stripped = strip_dev_files(os.path.join(PKG, "app", "node_modules"))
+print("stripped %d dev leftovers from app/node_modules" % _stripped)
+
 # 2b. scrub the build-machine user name from shipped files (node-gyp
 # *.vcxproj, config.gypi, PDB paths embedded in node-pty binaries and the
 # bundle). The replacement has the same byte length, so PE/PDB structures
 # stay intact; no literal user name is hard-coded here.
 _build_user = (os.environ.get("USERNAME") or os.path.basename(os.path.expanduser("~"))).encode("ascii", "ignore")
-if len(_build_user) >= 3:
-    _repl = (b"build" + b"_" * len(_build_user))[:len(_build_user)]
-    for r, dirs, files in os.walk(PKG):
-        for f in files:
-            p = os.path.join(r, f)
-            try:
-                with open(p, "rb") as fh:
-                    data = fh.read()
-            except OSError:
-                continue
-            if _build_user in data:
-                with open(p, "wb") as fh:
-                    fh.write(data.replace(_build_user, _repl))
+_names = [_build_user] if len(_build_user) >= 3 else []
+# generic CI/prebuild users that survive in upstream prebuilt packages
+_names += [b"build", b"runneradmin"]
+_names += [n for n in (b"builder", b"vagrant") if n != _build_user]
+for r, dirs, files in os.walk(PKG):
+    for f in files:
+        p = os.path.join(r, f)
+        try:
+            with open(p, "rb") as fh:
+                data = fh.read()
+        except OSError:
+            continue
+        new = data
+        for name in _names:
+            if b"\\Users\\" + name in new:
+                new = new.replace(b"\\Users\\" + name, b"\\Users\\" + b"x" * len(name))
+        if new != data:
+            with open(p, "wb") as fh:
+                fh.write(new)
 
 # 2c. licenses and third-party notices (required by the MIT/BSD terms of the
 # bundled components: upstream notices must travel with binary redistributions)
