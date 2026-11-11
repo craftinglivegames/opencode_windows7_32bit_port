@@ -26,6 +26,9 @@ verified on a real Windows 7 x32 netbook (see docs/PORT-native-x32.md):
    useDialogContext degrades to a stub instead of crashing the whole pane.
 5. index.html - cache-bust the patched main chunk for browsers that already
    cached the previous build.
+6. server retry message - the free-tier 429 carries a retry-after header
+   (seconds till midnight UTC, quota is per external IP). The patched
+   message surfaces the wait time instead of a bare "Subscribe to Go".
 
 Works on both layouts:
   package root:  <root>/app/index.js + <root>/app/webui/   (portable package)
@@ -54,6 +57,66 @@ SERVER_PATCHES = [
         "project worktree ('/' -> real directory)",
     ),
 ]
+
+# ---- 2b. free-tier message: surface retry-after (shared IP quota) --------------
+# Upstream shows a generic "Subscribe to Go" text. The 429 carries a
+# retry-after header (seconds till midnight UTC); the quota is per external
+# IP, so an office NAT shares it. Surface the wait time in both the status
+# message and the dialog text so the limit looks monitorable.
+FREE_OLD = (
+    'if (error.data.responseBody?.includes("FreeUsageLimitError")) {\n'
+    '      return {\n'
+    '        message: GO_UPSELL_MESSAGE,\n'
+    '        action: {\n'
+    '          reason: "free_tier_limit",\n'
+    '          provider,\n'
+    '          title: "Free limit reached",\n'
+    '          message: "Subscribe to OpenCode Go for reliable access to the best open-source models for $10/month.",\n'
+    '          label: "subscribe",\n'
+    '          link: GO_UPSELL_URL\n'
+    '        }\n'
+    '      };\n'
+    '    }'
+)
+FREE_NEW = (
+    'if (error.data.responseBody?.includes("FreeUsageLimitError")) {\n'
+    '      const raH = error.data.responseHeaders || {};\n'
+    '      let raSec = Number(raH["retry-after"]);\n'
+    '      if (Number.isNaN(raSec)) {\n'
+    '        const raMs = Number(raH["retry-after-ms"]);\n'
+    '        raSec = Number.isNaN(raMs) ? void 0 : Math.ceil(raMs / 1e3);\n'
+    '      } else {\n'
+    '        raSec = Math.max(0, Math.ceil(raSec));\n'
+    '      }\n'
+    '      const raTxt = raSec === void 0 ? "" : (() => {\n'
+    '        const s = raSec, d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.ceil(s % 3600 / 60);\n'
+    '        const u = (v, n) => `${v} ${n}${v === 1 ? "" : "s"}`;\n'
+    '        if (d > 0)\n'
+    '          return h > 0 ? `${u(d, "day")} ${u(h, "hour")}` : u(d, "day");\n'
+    '        if (h > 0)\n'
+    '          return m > 0 ? `${u(h, "hour")} ${u(m, "minute")}` : u(h, "hour");\n'
+    '        return m > 0 ? u(m, "minute") : "less than a minute";\n'
+    '      })();\n'
+    '      return {\n'
+    '        message: raTxt ? `${GO_UPSELL_MESSAGE} Retry after ${raTxt} (resets at midnight UTC, quota is shared per external IP).` : GO_UPSELL_MESSAGE,\n'
+    '        action: {\n'
+    '          reason: "free_tier_limit",\n'
+    '          provider,\n'
+    '          title: "Free limit reached",\n'
+    '          message: raTxt ? `Free IP quota exhausted (shared per external IP, an office NAT shares it). Retry after ${raTxt} (midnight UTC). ` + "Subscribe to OpenCode Go for reliable access to the best open-source models for $10/month." : "Subscribe to OpenCode Go for reliable access to the best open-source models for $10/month.",\n'
+    '          label: "subscribe",\n'
+    '          link: GO_UPSELL_URL\n'
+    '        }\n'
+    '      };\n'
+    '    }'
+)
+SERVER_PATCHES.append(
+    (
+        FREE_OLD,
+        FREE_NEW,
+        "free-tier message (retry-after wait time)",
+    )
+)
 
 # ---- 3. transition fix -------------------------------------------------------
 # Variants seen over time:

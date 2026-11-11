@@ -289,3 +289,8 @@ in `--app` mode; the browser has its own licenses.
 Everything is provided "as is", without warranty. The server runs without a
 password and listens on `0.0.0.0` — do not expose it to the internet or use it on
 a machine with untrusted users.
+
+Free opencode models are quota-limited per external IP (an office NAT shares
+one quota, no login needed), reset at midnight UTC. The patched build shows
+the wait time from the server's `retry-after` in the error instead of a bare
+"Subscribe to Go".
