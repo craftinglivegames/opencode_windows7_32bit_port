@@ -61,11 +61,11 @@ Headless server: `run_server.cmd`. Logs: `logs\launcher.log`, `logs\server.log`.
 
 ### Checksums
 
-For the archive attached to the latest release (`v0.2.4-x32`):
+For the archive attached to the latest release (`v0.2.5-x32`):
 
 | File | Size | SHA-256 |
 |---|---|---|
-| `OpenCode-Win7-x32-portable.zip` | 54 492 595 | `e97bf74e5755767dbfbce19ae0ba40a4cb3d0d2007f5dfb53fc11733d1833824` |
+| `OpenCode-Win7-x32-portable.zip` | 54 492 838 | `af084e6e98d25aa4cb2ae706befe778577671010d2334a6de93152fe4ab95aa9` |
 | `OpenCode.exe` (inside the archive) | 159 232 | `bd580bc0f2a319e839e0e5d3e8f83dc6b18d13606d057dcfeaba66d3b406d1e2` |
 
 Verify: `certutil -hashfile OpenCode-Win7-x32-portable.zip SHA256`.
@@ -194,16 +194,22 @@ Applied to the release archive and reproducible with
    a known upstream opencode bug (issues
    [#28857](https://github.com/anomalyco/opencode/issues/28857),
    [#28771](https://github.com/anomalyco/opencode/issues/28771)): some screens
-   and dialogs may render outside their providers. Providers additionally
-   publish their values into a global registry, and a context read that misses
-   the local owner chain takes the last mounted provider value instead of
-   throwing; `useDialog` and Kobalte's internal dialog context no longer kill
-   the tab.
-4. **Browser cache.** The main chunk is marked `?v=3` so old JS does not stick.
+   and dialogs may render outside their providers. Every context read now
+   remembers the value it returned, providers additionally publish into a global
+   registry, and a read that misses the local owner chain takes the last mounted
+   value instead of throwing. Covered: Solid contexts, opencode's own
+   `createSimpleContext` (`Settings` and friends), the router, the dialog stack
+   and the TanStack query client; `useDialog` and Kobalte's internal dialog
+   context no longer kill the tab.
+4. **Owner capture.** `createComponent` remembered the *first* owner it ever
+   saw, so a deferred render restored a context chain from outside the
+   router/query providers. It now remembers the latest owner.
+5. **Browser cache.** The main chunk is marked `?v=3` so old JS does not stick.
 
-Known limitation: if the SPA session has already been inside a draft, the
-settings dialog opened from the home screen may not open (it used to kill half
-the screen instead). Reloading the page fixes it. The complete solution is
+Verified on the netbook (Win7 SP1 x32, Atom N2600, 2 GB): a new session opens
+from the home screen, the prompt is sent and the model answers in the UI.
+Known limitation: opening the settings dialog from the home screen right after a
+draft may still do nothing; reloading the page fixes it. The complete solution is
 rebuilding the bundle from patched upstream sources.
 
 ---

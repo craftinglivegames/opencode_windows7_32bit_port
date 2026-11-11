@@ -148,6 +148,10 @@ MS_FINAL = (
 # deferred callbacks (ms) can fall back to a full context chain.
 XR_OLD = "yn=o,Xn=null;try{return fo(a,!0)}finally{Xn=n,yn=r}"
 XR_NEW = "yn=o,(window.__lastOwner=window.__lastOwner||o)&&0,Xn=null;try{return fo(a,!0)}finally{Xn=n,yn=r}"
+# `||o` kept the FIRST owner ever, so a deferred render restored an owner from
+# outside the router/query/dialog providers and every context read missed.
+# The latest created component owner is the one that scheduled the work.
+XR2_NEW = "yn=o,window.__lastOwner=o,Xn=null;try{return fo(a,!0)}finally{Xn=n,yn=r}"
 
 # ---- 4. context registry safety net ------------------------------------------
 IEE_OLD = (
@@ -167,6 +171,17 @@ QT_NEW = (
     'if(window.__ctxReg){t=window.__ctxReg.get(e.id);if(t!==void 0)return t}'
     'return e.defaultValue}'
 )
+# Reads that succeed are remembered too, not only provider registrations: some
+# contexts (the router, for instance) are provided by components we do not
+# patch, and a deferred render outside the owner chain still has to resolve
+# them. Last successfully read value wins - the same trade-off as the registry.
+QT_CACHE_OLD = QT_NEW
+QT_CACHE_NEW = (
+    'function Qt(e){var t,g=window.__ctxReg||(window.__ctxReg=new Map());'
+    'if(yn&&yn.context){t=yn.context[e.id];if(t!==void 0)return g.set(e.id,t),t}'
+    't=g.get(e.id);if(t!==void 0)return t;'
+    'return e.defaultValue}'
+)
 FR_OLD = (
     'function fr(){const e=Qt(x9),t=as();'
     'if(!t)throw new Error("useDialog must be used within a DialogProvider");'
@@ -176,6 +191,23 @@ FR_NEW = (
     'function fr(){const e=Qt(x9),t=as();'
     'if(!e)throw new Error("useDialog must be used within a DialogProvider");'
 )
+# The dialog provider is mounted by the app root; a deferred chunk that lands
+# outside the provider chain still has to find it, otherwise every screen that
+# merely *can* open a dialog dies. Publish the value and fall back to it.
+FR2_OLD = FR_NEW
+FR2_NEW = (
+    'function fr(){const e=Qt(x9)||window.__dialogCtx,t=as();'
+    'if(!e)throw new Error("useDialog must be used within a DialogProvider");'
+)
+DIALOG_REG_OLD = "f(x9.Provider,{value:t,"
+DIALOG_REG_NEW = "f(x9.Provider,{value:(window.__dialogCtx=t),"
+# @tanstack/solid-query keeps its client in yet another context; a deferred
+# render outside the provider chain otherwise dies with
+# "No QueryClient set, use QueryClientProvider to set one".
+QUERY_REG_OLD = "f(uj.Provider,{value:()=>e.client,"
+QUERY_REG_NEW = "f(uj.Provider,{value:(window.__queryClient=()=>e.client),"
+QUERY_USE_OLD = "const t=Qt(uj);if(!t)throw new Error(\"No QueryClient set, use QueryClientProvider to set one\")"
+QUERY_USE_NEW = "const t=Qt(uj)||window.__queryClient;if(!t)throw new Error(\"No QueryClient set, use QueryClientProvider to set one\")"
 UU_OLD = (
     'function uu(){const e=Qt(f9);if(e===void 0)throw new Error('
     '"[kobalte]: `useDialogContext` must be used within a `Dialog` component");return e}'
@@ -189,12 +221,49 @@ UU_NEW = (
     'return function(){}}})}return e}'
 )
 
+# ---- 4b. simple-context registry (opencode's own createSimpleContext) -------
+SIMPLE_PROVIDER_OLD = "function Pr(e){const t=tn();return{provider:n=>{const r=e.init(n);"
+SIMPLE_PROVIDER_NEW = (
+    "function Pr(e){const t=tn();return{provider:n=>{const r=e.init(n);"
+    "(window.__ctxByName=window.__ctxByName||new Map()).set(e.name,r);"
+)
+SIMPLE_USE_OLD = (
+    'use(){const n=Qt(t);if(!n)throw new Error(`${e.name} context must be used within a context provider`);return n}'
+)
+SIMPLE_USE_NEW = (
+    "use(){const n=Qt(t);if(n)return n;const g=window.__ctxByName;"
+    "if(g&&g.has(e.name))return g.get(e.name);"
+    'throw new Error(`${e.name} context must be used within a context provider`)}'
+)
+
+# ---- 4c. router context (provided by @solidjs/router, not by our helpers) ---
+# The router value is created once per Router instance and is a plain object,
+# so remembering it globally is safe and lets deferred renders (which land
+# outside the provider chain) resolve <A> and use* primitives.
+ROUTER_REG_OLD = "f(XV.Provider,{value:o,"
+ROUTER_REG_NEW = "f(XV.Provider,{value:(window.__routerCtx=o),"
+ROUTER_USE_OLD = "og=()=>Tfe(Qt(XV),"
+ROUTER_USE_NEW = "og=()=>Tfe(Qt(XV)||window.__routerCtx,"
+
 UI_PATCHES = [
     {"label": "web UI transition fix", "target": MS_FINAL, "olds": [MS_ORIGINAL, MS_NOPRESERVE, MS_LASTOWNER]},
-    {"label": "web UI last-owner fallback", "target": XR_NEW, "olds": [XR_OLD]},
+    {"label": "web UI last-owner fallback", "target": XR2_NEW, "olds": [XR_NEW, XR_OLD]},
     {"label": "web UI context registry (provider)", "target": IEE_NEW, "olds": [IEE_OLD]},
-    {"label": "web UI context registry (lookup)", "target": QT_NEW, "olds": [QT_OLD]},
-    {"label": "web UI useDialog tolerant check", "target": FR_NEW, "olds": [FR_OLD]},
+    {"label": "web UI context registry (lookup)", "target": QT_CACHE_NEW, "olds": [QT_CACHE_OLD, QT_OLD]},
+    # opencode has its own tiny context helper (`createSimpleContext`) on top of
+    # Solid: it throws "<Name> context must be used within a context provider"
+    # from its own use(). Settings is one of those, which is why the "New
+    # session" chunk died on Win7 even though the Solid contexts were covered.
+    {"label": "web UI simple context registry (provider)", "target": SIMPLE_PROVIDER_NEW,
+     "olds": [SIMPLE_PROVIDER_OLD]},
+    {"label": "web UI simple context registry (use)", "target": SIMPLE_USE_NEW,
+     "olds": [SIMPLE_USE_OLD]},
+    {"label": "web UI router context (provider)", "target": ROUTER_REG_NEW, "olds": [ROUTER_REG_OLD]},
+    {"label": "web UI router context (use)", "target": ROUTER_USE_NEW, "olds": [ROUTER_USE_OLD]},
+    {"label": "web UI dialog provider (publish)", "target": DIALOG_REG_NEW, "olds": [DIALOG_REG_OLD]},
+    {"label": "web UI query client (publish)", "target": QUERY_REG_NEW, "olds": [QUERY_REG_OLD]},
+    {"label": "web UI query client (use)", "target": QUERY_USE_NEW, "olds": [QUERY_USE_OLD]},
+    {"label": "web UI useDialog tolerant check", "target": FR2_NEW, "olds": [FR2_OLD, FR_OLD]},
     {"label": "web UI kobalte dialog stub", "target": UU_NEW, "olds": [UU_OLD]},
 ]
 

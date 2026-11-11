@@ -305,12 +305,15 @@ function listAccounts() {
   const imported = importServerCredential(store);
   if (imported) dirty = true;
   // Keep the "active" pointer honest if the server row was changed elsewhere
-  // (standard web UI login, manual edit).
+  // (standard web UI login, manual edit). The DB keeps a single row, so the
+  // value identifies the account; when several accounts share that value
+  // (same key added twice, same token from two logins) the pointer must stay
+  // on the account the user picked instead of snapping to the first match.
   const row = readServerCredential();
   if (row) {
-    const match = store.accounts.find((a) => a.value === row.value);
-    if (match && store.active !== match.id) {
-      store.active = match.id;
+    const matches = store.accounts.filter((a) => a.value === row.value);
+    if (matches.length && !matches.some((a) => a.id === store.active)) {
+      store.active = matches[0].id;
       dirty = true;
     }
   }
