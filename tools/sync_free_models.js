@@ -54,15 +54,23 @@ function fetchJson(url, timeoutMs) {
 function toConfigModel(entry) {
   const limit = entry.limit || {};
   const cost = entry.cost || {};
-  return {
+  const model = {
     name: entry.name || entry.id,
     attachment: !!entry.attachment,
     reasoning: !!entry.reasoning,
     reasoning_options: [],
     tool_call: entry.tool_call !== undefined ? !!entry.tool_call : true,
-    limit: { context: limit.context || 0, output: limit.output || 0 },
     cost: { input: cost.input || 0, output: cost.output || 0 },
   };
+  // Do not write limit:{context:0,output:0}: the web UI treats an explicit
+  // zero as "free limit exhausted". Omit the block when the catalog has no
+  // usable values so the server falls back to its own defaults.
+  const ctx = Number(limit.context) || 0;
+  const out = Number(limit.output) || 0;
+  if (ctx > 0 || out > 0) {
+    model.limit = { context: ctx, output: out };
+  }
+  return model;
 }
 
 async function main() {
