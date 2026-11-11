@@ -17,6 +17,7 @@
 //
 //  Modes (for diagnostics / automation):
 //      OpenCode.exe                normal GUI launch
+//      OpenCode.exe --accounts     accounts & limits panel (local web page)
 //      OpenCode.exe --serve-only   start the server, do not open a browser
 //      OpenCode.exe --stop         stop the server on port 4096
 //      OpenCode.exe --selftest     write diagnostics to logs\launcher.log
@@ -46,6 +47,8 @@
 static const wchar_t* kUrl = L"http://127.0.0.1:4096/";
 static const wchar_t* kHealth = L"http://127.0.0.1:4096/global/health";
 static const int kPort = 4096;
+static const int kPanelPort = 4099;
+static const wchar_t* kPanelUrl = L"http://127.0.0.1:4099/";
 
 // ---------------------------------------------------------------------------
 //  helpers
@@ -350,6 +353,91 @@ static int EnsureServer(const std::wstring& dir, bool quiet) {
 }
 
 // ---------------------------------------------------------------------------
+//  accounts panel (local web page: OpenCode Console accounts and free limits)
+// ---------------------------------------------------------------------------
+
+// Returns 0 on success, 5 when accounts_panel.js is missing, 6 when the panel
+// did not start listening.
+static int EnsurePanel(const std::wstring& dir, bool quiet) {
+  std::wstring node = Join(Join(dir, L"node"), L"node.exe");
+  std::wstring script = Join(dir, L"accounts_panel.js");
+  if (!FileExists(node) || !FileExists(script)) {
+    Log(L"panel: layout error node=%d script=%s exists=%d", (int)FileExists(node), script.c_str(),
+        (int)FileExists(script));
+    if (!quiet)
+      MessageBoxW(NULL,
+                  (L"Не найден файл панели аккаунтов:\n\n" + script +
+                       L"\n\nРаспакуйте portable-пакет целиком (accounts_panel.js должен лежать рядом с "
+                       L"OpenCode.exe).")
+                      .c_str(),
+                  L"OpenCode", MB_ICONERROR | MB_OK);
+    return 5;
+  }
+
+  if (PortOpen(kPanelPort, 400)) {
+    Log(L"panel already listening on %d", kPanelPort);
+    return 0;
+  }
+
+  std::wstring logs = Join(dir, L"logs");
+  EnsureDir(logs);
+  std::wstring panelLog = Join(logs, L"accounts_panel.out");
+  SetEnvironmentVariableW(L"NODE_SKIP_PLATFORM_CHECK", L"1");
+
+  SECURITY_ATTRIBUTES sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.nLength = sizeof(sa);
+  sa.bInheritHandle = TRUE;
+  HANDLE h = CreateFileW(panelLog.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, &sa, OPEN_ALWAYS,
+                         FILE_ATTRIBUTE_NORMAL, NULL);
+  if (h == INVALID_HANDLE_VALUE) h = NULL;
+
+  std::wstring cmd = L"\"" + node + L"\" \"" + script + L"\" --port " + std::to_wstring(kPanelPort);
+  Log(L"starting panel: %s", cmd.c_str());
+
+  STARTUPINFOW si;
+  PROCESS_INFORMATION pi;
+  memset(&si, 0, sizeof(si));
+  memset(&pi, 0, sizeof(pi));
+  si.cb = sizeof(si);
+  if (h) {
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput = INVALID_HANDLE_VALUE;
+    si.hStdOutput = h;
+    si.hStdError = h;
+  }
+  std::vector<wchar_t> mutableCmd(cmd.begin(), cmd.end());
+  mutableCmd.push_back(0);
+  BOOL ok = CreateProcessW(node.c_str(), mutableCmd.data(), NULL, NULL, h ? TRUE : FALSE, CREATE_NO_WINDOW, NULL,
+                           dir.c_str(), &si, &pi);
+  DWORD err = GetLastError();
+  if (h) CloseHandle(h);
+  if (!ok) {
+    Log(L"panel CreateProcessW failed: %s", SysErr(err).c_str());
+    if (!quiet)
+      MessageBoxW(NULL, (L"Не удалось запустить панель аккаунтов:\n" + SysErr(err)).c_str(), L"OpenCode",
+                  MB_ICONERROR | MB_OK);
+    return 6;
+  }
+  CloseHandle(pi.hThread);
+  CloseHandle(pi.hProcess);
+
+  if (!WaitPort(kPanelPort, 20000)) {
+    Log(L"panel did not start, see %s", panelLog.c_str());
+    if (!quiet)
+      MessageBoxW(NULL, (L"Панель аккаунтов не запустилась.\n\nЛог: " + panelLog).c_str(), L"OpenCode",
+                  MB_ICONERROR | MB_OK);
+    return 6;
+  }
+  return 0;
+}
+
+static void OpenPanel() {
+  HINSTANCE r = ShellExecuteW(NULL, L"open", kPanelUrl, NULL, NULL, SW_SHOWNORMAL);
+  if ((INT_PTR)r <= 32) Log(L"ShellExecuteW(panel) failed: %ld", (long)(INT_PTR)r);
+}
+
+// ---------------------------------------------------------------------------
 //  browser
 // ---------------------------------------------------------------------------
 
@@ -423,6 +511,7 @@ int wmain(int argc, wchar_t** argv) {
   bool serveOnly = wcscmp(mode, L"--serve-only") == 0;
   bool stop = wcscmp(mode, L"--stop") == 0;
   bool selftest = wcscmp(mode, L"--selftest") == 0;
+  bool accounts = wcscmp(mode, L"--accounts") == 0;
 
   WSADATA wsa;
   WSAStartup(MAKEWORD(2, 2), &wsa);
@@ -451,6 +540,19 @@ int wmain(int argc, wchar_t** argv) {
     Log(L"selftest: browser=%s", b.empty() ? L"<default>" : b.c_str());
     WSACleanup();
     return FileExists(Join(Join(dir, L"node"), L"node.exe")) ? 0 : 2;
+  }
+
+  if (accounts) {
+    int rc = EnsureServer(dir, true);
+    if (rc != 0 && rc != 1) {
+      WSACleanup();
+      return rc;
+    }
+    int prc = EnsurePanel(dir, false);
+    if (prc == 0) OpenPanel();
+    WSACleanup();
+    Log(L"---- exit %d", prc);
+    return prc;
   }
 
   int rc = EnsureServer(dir, serveOnly || selftest);

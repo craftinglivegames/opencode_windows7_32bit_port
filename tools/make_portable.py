@@ -131,10 +131,11 @@ for src_rel, dst_name in (
 for sync_rel in (
     os.path.join("tools", "sync_free_models.js"),
     os.path.join("tools", "sync_free_models.cmd"),
+    os.path.join("tools", "accounts_panel.js"),
 ):
     sync_abs = os.path.join(ROOT, sync_rel)
     if not os.path.isfile(sync_abs):
-        raise SystemExit("sync helper missing: " + sync_abs)
+        raise SystemExit("helper missing: " + sync_abs)
     shutil.copy2(sync_abs, os.path.join(PKG, os.path.basename(sync_rel)))
 
 # 3. launchers
@@ -174,6 +175,16 @@ endlocal
 """
 with open(os.path.join(PKG, "run_server.cmd"), "w", newline="\r\n") as f:
     f.write(RUN_SERVER_CMD)
+
+ACCOUNTS_CMD = """@echo off
+setlocal
+set "DIR=%~dp0"
+rem Opens the accounts & limits panel (http://127.0.0.1:4099).
+start "" "%DIR%OpenCode.exe" --accounts
+endlocal
+"""
+with open(os.path.join(PKG, "accounts.cmd"), "w", newline="\r\n") as f:
+    f.write(ACCOUNTS_CMD)
 
 README = r"""OpenCode для Windows 7 x32 — портативная версия
 =================================================
@@ -250,6 +261,31 @@ web-UI (app\webui), терминал — node-pty x86 (winpty).
 free-модели в opencode.json (с бэкапом). После него перезапустите сервер
 (закройте окно сервера и запустите OpenCode.cmd заново) — список в интерфейсе
 читается один раз при старте сервера.
+
+Аккаунты и лимиты (accounts.cmd)
+--------------------------------
+Без входа бесплатные модели идут через общий публичный ключ: квота считается
+по внешнему IP (сброс в полночь UTC), поэтому все устройства одной сети —
+и офис за NAT — делят один лимит. Вход под своим аккаунтом даёт отдельную
+квоту.
+
+Откройте accounts.cmd (или OpenCode.exe --accounts) — откроется локальная
+страница http://127.0.0.1:4099:
+
+  - "Войти по коду" — вход через opencode.ai (device flow): показывается код,
+    вход подтверждается в браузере, страница сама дождётся результата;
+  - "Добавить сервисный ключ" — аккаунт по API-ключу (oc_sk_...);
+  - список аккаунтов: "Сделать активным" (перезапускает сервер — он читает
+    учётные данные при старте), "Имя", "Удалить".
+
+Список аккаунтов панель хранит сама в
+%USERPROFILE%\.local\share\opencode\port_accounts.json; активный аккаунт
+записывается в базу порта. Сервер opencode 1.19.3 держит только одну учётную
+запись на провайдера, поэтому переключение = запись выбранного аккаунта +
+перезапуск сервера.
+
+Важно: один и тот же аккаунт на разных устройствах всё равно делит лимит —
+"своя квота" означает "свой аккаунт".
 
 Где лежат данные
 ----------------

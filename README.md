@@ -111,6 +111,17 @@ Verify: `certutil -hashfile OpenCode-Win7-x32-portable.zip SHA256`.
 - Free-model details, regional blocks and the exact per-provider lists are
   described in the Russian README: [README.ru.md](README.ru.md#модели-и-ключи).
 
+- **Free quota is per external IP until you sign in.** Anonymous requests use the
+  shared public Zen key, so every device behind one NAT (home, office) shares the
+  same daily quota; it resets at midnight UTC. Run `accounts.cmd` (or
+  `OpenCode.exe --accounts`) for the local **Accounts & limits** page:
+  sign in with a device code, add a service API key, rename/remove accounts and
+  switch the active one. The panel keeps its own account list in
+  `%USERPROFILE%\.local\share\opencode\port_accounts.json`; switching writes the
+  chosen credential into the port database and restarts the server (opencode
+  1.19.3 stores a single credential per provider and reads it at startup).
+  One account on two devices still shares its quota.
+
 ---
 
 ## What has been verified
